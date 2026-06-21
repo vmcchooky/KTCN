@@ -1,0 +1,13 @@
+\section{Mục tiêu dự án}
+
+Dự án "Dịch vụ thư tín số an toàn Mật thư - Secret Letter" được thực hiện nhằm hướng đến các mục tiêu chính yếu sau:
+
+\textbf{Mục tiêu tổng quát:}
+Xây dựng một ứng dụng web hoạt động độc lập, cho phép người dùng chia sẻ các đoạn thông tin nhạy cảm (như mật khẩu, token, khóa API) một cách an toàn và dễ sử dụng. Hệ thống hướng đến nguyên tắc cốt lõi: bí mật chỉ có thể được xem một lần duy nhất và hạn chế tối đa khả năng phía máy chủ đọc được nội dung gốc của thông điệp.
+
+\textbf{Mục tiêu cụ thể:}
+\begin{itemize}
+    \item \textit{Về mặt lý thuyết:} Tìm hiểu và ứng dụng các chuẩn mã hóa tiên tiến hiện nay (đặc biệt là AES-256-GCM), nghiên cứu nguyên lý hoạt động của kiến trúc Zero-Knowledge và cơ chế mã hóa phía máy khách (Client-side Encryption) thông qua Web Crypto API.
+    \item \textit{Về mặt phát triển ứng dụng:} Thiết kế và triển khai thành công hệ thống Backend hiệu năng cao sử dụng ngôn ngữ Golang kết hợp với Redis để xử lý lưu trữ tạm thời (in-memory) và quản lý vòng đời (Time-to-Live) của các thông điệp một cách tối ưu. Ở phía Frontend, xây dựng giao diện trực quan, dễ tương tác giúp quá trình mã hóa và chia sẻ diễn ra liền mạch trên trình duyệt.
+    \item \textit{Về mặt bảo mật hệ thống:} Triển khai các cơ chế bảo vệ nâng cao như Reveal Gate để hỗ trợ ngăn chặn sự thu thập tự động từ các bot (web crawlers) và phần mềm quét liên kết trên các nền tảng nhắn tin. Đồng thời, áp dụng tính nguyên tử (atomic) trong quá trình truy xuất dữ liệu để đảm bảo thông điệp bị tiêu hủy ngay sau lượt đọc đầu tiên.
+\end{itemize}

@@ -1,0 +1,9 @@
+\section{Lý do chọn đề tài}
+
+Trong kỷ nguyên số hóa hiện nay, việc trao đổi thông tin nhạy cảm như mật khẩu, khóa API, mã thông báo truy cập (access token) hay dữ liệu cá nhân diễn ra thường xuyên trong môi trường doanh nghiệp cũng như giữa các cá nhân. Tuy nhiên, việc chia sẻ qua các kênh giao tiếp phổ biến như email, các ứng dụng nhắn tin (Zalo, Messenger, Slack, v.v.) vẫn tiềm ẩn nhiều rủi ro về an toàn thông tin. Các dữ liệu này thường được lưu trữ trong thời gian dài trên máy chủ của nhà cung cấp dịch vụ hoặc trong lịch sử trò chuyện. Điều này tạo ra rủi ro lớn về rò rỉ thông tin nếu máy chủ bị tấn công hoặc tài khoản người dùng bị xâm nhập.
+
+Bên cạnh đó, phần lớn các hệ thống lưu trữ hiện nay thực hiện việc mã hóa ở phía máy chủ (Server-side Encryption), đòi hỏi người dùng phải phụ thuộc nhiều vào nhà cung cấp. Nếu nhà cung cấp dịch vụ bị tổn hại, các dữ liệu bí mật cũng có nguy cơ bị lộ.
+
+Để giải quyết bài toán trên, tôi đã quyết định chọn đề tài \textbf{"Dịch vụ thư tín số an toàn Mật thư - Secret Letter"}. Dự án ứng dụng kiến trúc \textit{Zero-Knowledge} và cơ chế mã hóa phía máy khách (\textit{Client-side Encryption}). Nội dung bí mật sẽ được mã hóa trực tiếp trên trình duyệt người dùng bằng các thuật toán mã hóa tiêu chuẩn (như AES-256-GCM) trước khi gửi đi. Điểm đặc biệt là khóa giải mã được đính kèm trong phần phân mảnh của URL (URL fragment), giúp hạn chế máy chủ tiếp cận nội dung gốc. Hơn nữa, thông điệp được thiết lập cơ chế chỉ đọc một lần (one-time read) và tự hủy sau khi đọc hoặc hết hạn, giúp giảm thiểu tối đa dấu vết dữ liệu trên hệ thống.
+
+Đề tài này mang ý nghĩa thực tiễn trong việc nâng cao bảo mật thông tin, đồng thời là cơ hội để tôi nghiên cứu sâu hơn về kiến trúc phân tán, công nghệ mã hóa hiện đại và các giải pháp Backend hiệu năng cao bằng Golang.

@@ -1,0 +1,399 @@
+% !TEX program = xelatex
+
+% === Biên dịch bằng XeLaTeX ===
+% (TeX -> XeLaTeX) để hỗ trợ tiếng Việt + Times New Roman
+\documentclass[13pt,a4paper]{extreport}
+% --- Ngôn ngữ & font ---
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setmainlanguage{vietnamese} % Ngôn ngữ chính: tiếng Việt
+\setotherlanguage{english}   % Ngôn ngữ phụ: tiếng Anh
+\setmainfont{Times New Roman}
+\setsansfont{Times New Roman}
+
+% Nếu có công thức toán hoặc ký tự đặc biệt trong toán học:
+\usepackage{amsmath, amssymb, amsfonts} % Toán học
+\usepackage{unicode-math}
+\setmathfont{XITS Math}
+
+\usepackage{fontawesome5} % Cung cấp các biểu tượng như \faCheck, \faTimes
+\usepackage{textcomp}
+
+%Thư mục project
+\usepackage{dirtree}
+\usepackage{needspace}
+
+% --- Ký hiệu tiện dụng ---
+\newcommand{\concat}{\mathbin{\|}} % phép nối chuỗi (concatenation)
+ % Ký hiệu như °, €, ™
+
+% --- Giấy & lề theo quy định TDTU ---
+\usepackage{geometry}
+\geometry{paper=a4paper, top=3.5cm, bottom=3cm, left=3.5cm, right=2cm, headheight=25pt}
+\setlength{\headsep}{10pt}
+
+% --- Giãn dòng 1.5 ---
+\usepackage{setspace}
+\onehalfspacing
+
+% --- Đồ hoạ, bảng biểu, mã nguồn ---
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\small, breaklines=true, frame=single}
+
+% --- Màu sắc (một lần) ---
+\usepackage[table]{xcolor}
+\usepackage[T1]{fontenc}
+\usepackage{inconsolata} % monospace đẹp (tuỳ chọn)
+\usepackage{xcolor}
+\usepackage{minted}
+
+% Style chung cho code
+\setminted{
+  fontsize=\small,
+  breaklines=true,
+  breakanywhere=true,
+  autogobble=true,
+  tabsize=4,
+  linenos=true,
+  numbersep=6pt,
+  frame=lines,
+  framesep=3mm
+}
+
+% --- Toán học (nếu cần) ---
+% (đã nạp amsmath/amssymb ở phần trên)
+
+% --- Sơ đồ (TikZ) ---
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, calc, backgrounds, shadows, shadows.blur, decorations.pathreplacing}
+
+% --- Liên kết ---
+\usepackage{csquotes} % cần cho biblatex
+\usepackage[hyphens]{url} % Cho phép ngắt dòng URL tại dấu gạch nối
+% --- Tiêu đề chương/mục & Mục lục ---
+\usepackage{tocloft}
+\setcounter{tocdepth}{2}
+
+\setlength{\headsep}{10pt}
+% Hiển thị "CHƯƠNG" trước số chương và trong Mục lục
+\addto\captionsvietnamese{\renewcommand{\chaptername}{CHƯƠNG}}
+\renewcommand{\cftchappresnum}{\chaptername\ }
+\renewcommand{\cftchapnumwidth}{7em}
+\renewcommand{\cftchapaftersnum}{\hspace{0.5em}}
+\renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}}
+
+% Định dạng tiêu đề
+\usepackage{titlesec}
+% CHƯƠNG: 18pt (leading 20pt), đậm + căn giữa
+\titleformat{\chapter}
+  {\bfseries\fontsize{18pt}{20pt}\selectfont}
+  {\chaptername\ \thechapter}{1em}{}
+\titlespacing{\chapter}{0pt}{1.0\baselineskip}{1.0\baselineskip}
+% \usepackage{etoolbox}
+% \makeatletter
+% \patchcmd{\@afterheading}{\@afterindentfalse}{\@afterindenttrue}{}{}
+% \makeatother
+
+% Xoay ngang trang
+\usepackage{pdflscape}
+
+\usepackage{microtype}
+
+% Mục (section): 14pt (leading 16pt), đậm
+\titleformat{\section}
+  {\bfseries\fontsize{14pt}{16pt}\selectfont}
+  {\thesection}{1em}{}
+\titlespacing{\section}{0pt}{0.8\baselineskip}{0.8\baselineskip}
+
+% Tiểu mục (subsection): 13pt (leading 15pt), đậm (thích thì thêm \itshape)
+\titleformat{\subsection}
+  {\bfseries\itshape\fontsize{13pt}{15pt}\selectfont}
+  {\thesubsection}{1em}{}
+\titlespacing{\subsection}{0pt}{0.6\baselineskip}{0.6\baselineskip}
+
+\titleformat{\subsubsection}
+  {\bfseries\fontsize{13pt}{15pt}\selectfont}
+  {\thesubsubsection}{1em}{}
+\titlespacing{\subsubsection}{0pt}{0.5\baselineskip}{0.5\baselineskip}
+
+  
+% --- Danh sách (không dùng quá 3 cấp) ---
+\usepackage{enumitem}
+\setlistdepth{4}
+% Cấp 1: gạch ngang dài
+\setlist[itemize,1]{label=--, left=0pt, itemsep=0.4em, topsep=0.4em}
+
+% Cấp 2: dấu cộng (dùng math cho đẹp)
+\setlist[itemize,2]{label={$+$}, left=1em, itemsep=0.3em, topsep=0.3em}
+
+% Cấp 3: chấm tròn đen
+\setlist[itemize,3]{label=\textbullet, left=2em, itemsep=0.2em, topsep=0.2em}
+
+
+% --- Header & Footer: số trang giữa-đầu trang theo quy định ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}% xoá hết
+\fancyhead[C]{\thepage} % số trang ở giữa phần đầu trang
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+% Trang kiểu "plain" (mặc định cho đầu chương) cũng đặt số ở đầu trang
+\fancypagestyle{plain}{% áp cho các trang plain
+\fancyhf{}
+\fancyhead[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+}
+
+% Tài liệu tham khảo
+\usepackage[backend=biber,style=apa,citestyle=apa]{biblatex}
+\addbibresource{references.bib}
+\DeclareLanguageMapping{vietnamese}{vietnamese-apa}
+
+% ===== Danh mục bảng biểu (List of Tables) =====
+% Độ rộng vùng số (để canh thẳng hàng + đủ chỗ cho "Bảng 10.12" ...)
+\setlength{\cfttabnumwidth}{4em} % tăng/giảm tuỳ bạn
+
+% Khoảng cách giữa số và tên bảng
+\renewcommand{\cfttabaftersnum}{\hspace{0.8em}} % tăng/giảm tuỳ bạn
+
+% ===== Danh mục hình vẽ (List of Figures) =====
+\setlength{\cftfignumwidth}{4em}
+\renewcommand{\cftfigaftersnum}{\hspace{0.8em}}
+
+
+
+% --- Liên kết (nên nạp sau biblatex để ổn định hơn) ---
+\usepackage[hidelinks]{hyperref}
+% --- Thụt đầu dòng ~1 tab ---
+\usepackage{indentfirst}
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0pt}
+
+\renewcommand{\figurename}{Hình}
+\renewcommand{\tablename}{Bảng}
+
+%============================================================
+\begin{document}
+% ====================== TRANG BÌA (MẪU 1) ===================
+\thispagestyle{empty}
+\fontsize{15pt}{15pt}\selectfont
+\begin{center}
+    \textbf{TỔNG LIÊN ĐOÀN LAO ĐỘNG VIỆT NAM \\TRƯỜNG ĐẠI HỌC TÔN ĐỨC THẮNG\\ KHOA CÔNG NGHỆ THÔNG TIN}\\
+\end{center}
+\vspace{1cm}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.3\linewidth]{img/Logo.png}
+\end{figure}	
+\vspace{1cm}
+\begin{center}
+    \fontsize{18pt}{18pt}\selectfont
+    \textbf{VÕ MẠNH CƯỜNG - 52200319}
+\end{center}
+\vspace{1cm}
+\begin{center}\Huge
+    \textbf{\MakeUppercase{Dịch vụ thư tín số an toàn\\Mật thư - Secret Letter}}
+\end{center}
+\vspace{2cm}
+\begin{center}
+\fontsize{20pt}{18pt}\selectfont
+    \textbf{\MakeUppercase{MẠNG MÁY TÍNH\\VÀ TRUYỀN THÔNG DỮ LIỆU}} 
+\end{center}
+
+\vspace{3.5cm}
+\begin{center}
+    \textbf{THÀNH PHỐ HỒ CHÍ MINH – 2025}
+\end{center}
+\newpage
+
+% Trang bìa thứ hai: Không header, không footer, không số trang
+\thispagestyle{empty}
+\fontsize{15pt}{15pt}\selectfont
+\begin{center}
+    \textbf{TỔNG LIÊN ĐOÀN LAO ĐỘNG VIỆT NAM \\TRƯỜNG ĐẠI HỌC TÔN ĐỨC THẮNG\\ KHOA CÔNG NGHỆ THÔNG TIN}\\
+\end{center}
+\vspace{1cm}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.3\linewidth]{img/Logo.png}
+\end{figure}
+\vspace{1cm}
+
+\begin{center}
+    \fontsize{18pt}{18pt}\selectfont
+    \textbf{VÕ MẠNH CƯỜNG - 52200319}
+\end{center}
+\vspace{1cm}
+\begin{center}\Huge
+    \textbf{\MakeUppercase{Dịch vụ thư tín số an toàn\\Mật thư - Secret Letter}}	
+\end{center}
+\vspace{1cm}
+\begin{center}
+\fontsize{20pt}{18pt}\selectfont
+    \textbf{\MakeUppercase{MẠNG MÁY TÍNH\\VÀ TRUYỀN THÔNG DỮ LIỆU}} 
+\end{center}
+
+\vspace{1.5cm}
+\fontsize{16pt}{16pt}\selectfont
+\begin{center}
+    Người hướng dẫn\\
+    \fontsize{18pt}{16pt}\selectfont
+    \textbf{TS. Trần Thanh Nam}
+\end{center}
+\vspace{1cm}
+\begin{center}
+    \textbf{THÀNH PHỐ HỒ CHÍ MINH – 2025}
+\end{center}
+\clearpage
+
+% Các trang từ Lời cảm ơn đến Danh mục viết tắt: Đánh số La Mã, số trang giữa trên đầu, không header/footer
+\pagestyle{plain}
+\pagenumbering{roman}
+\setcounter{page}{1}
+\fontsize{15pt}{18pt}\selectfont
+\begin{center}\fontsize{16pt}{18pt}
+    \textbf{LỜI CẢM ƠN}	
+\end{center}
+Em xin chân thành gửi lời cảm ơn sâu sắc đến TS. Trần Thanh Nam đã tận tình giảng dạy, hỗ trợ và truyền đạt kiến thức trong quá trình thực hiện dự án.
+
+Tuy nhiên em còn hạn chế nhiều về kiến thức nên không thể tránh khỏi những thiếu sót trong quá trình hoàn thành dự án này. Mong quý thầy/cô xem và góp ý để bài báo cáo của em được cải thiện hơn.
+
+\newpage
+
+\begin{center}\fontsize{16pt}{18pt}
+    \textbf{CÔNG TRÌNH ĐƯỢC HOÀN THÀNH \\ TẠI TRƯỜNG ĐẠI HỌC TÔN ĐỨC THẮNG}
+\end{center}
+
+Tôi xin cam đoan đây là sản phẩm đồ án của riêng tôi và được sự hướng dẫn của TS. Trần Thanh Nam. Các nội dung nghiên cứu, kết quả trong đề tài này là trung thực và chưa công bố dưới bất kỳ hình thức nào trước đây. Những số liệu trong các bảng biểu phục vụ cho việc phân tích, nhận xét, đánh giá được chính tôi thu thập từ các nguồn khác nhau có ghi rõ trong phần tài liệu tham khảo.
+
+Ngoài ra, trong đồ án còn sử dụng một số nhận xét, đánh giá cũng như số liệu của các tác giả khác, cơ quan tổ chức khác đều có trích dẫn và chú thích nguồn gốc.
+
+\textbf{Nếu phát hiện có bất kỳ sự gian lận nào tôi xin hoàn toàn chịu trách nhiệm về nội dung đồ án của mình}. Trường đại học Tôn Đức Thắng không liên quan đến những vi phạm tác quyền, bản quyền do tôi gây ra trong quá trình thực hiện (nếu có).
+\begin{center}
+    \textit{
+        \hspace*{5cm}TP.Hồ Chí Minh, ngày 07 tháng 01 năm 2026 \\
+    	\hspace*{5cm}Tác giả\\
+    	\hspace*{5cm}(ký và ghi rõ họ tên)\\
+    	\vspace*{0.2cm}
+    	\vspace*{2cm}
+    	\hspace*{5cm}Võ Mạnh Cường\\
+        \vspace*{0.2cm}
+    }
+\end{center}
+\newpage
+
+\begin{center}\fontsize{16pt}{18pt}
+    \textbf{DỊCH VỤ THƯ TÍN SỐ AN TOÀN MẬT THƯ - SECRET LETTER\\}
+    \textbf{TÓM TẮT}
+\end{center}
+
+Trong bối cảnh bảo mật thông tin số ngày càng được đề cao, việc chia sẻ các dữ liệu nhạy cảm (như mật khẩu, token, API keys) qua các kênh truyền thông thông thường tiềm ẩn nhiều rủi ro rò rỉ. Dự án Secret Letter ra đời nhằm giải quyết vấn đề này bằng cách xây dựng một ứng dụng web cho phép chia sẻ bí mật một lần, kết hợp cơ chế mã hóa phía máy khách (Client-Side Encryption) và kiến trúc Zero-Knowledge.
+
+Hệ thống được thiết kế sử dụng thuật toán AES-256-GCM qua Web Crypto API, đảm bảo dữ liệu luôn được mã hóa tại trình duyệt người dùng trước khi gửi đến máy chủ. Điểm nổi bật là khóa giải mã được nhúng vào URL fragment, giúp ngăn chặn triệt để việc máy chủ tiếp cận được nội dung giải mã. Phía Backend sử dụng Golang kết hợp với Redis để xử lý logic lưu trữ có thời hạn (TTL) và đảm bảo tính nguyên tử (atomic) để bí mật chỉ có thể được đọc một lần duy nhất.
+
+Kết quả triển khai hệ thống cho thấy Secret Letter không chỉ đáp ứng tốt các yêu cầu về an toàn thông tin mà còn duy trì hiệu năng cao, khả năng chịu tải tốt và chống lại các bot cào dữ liệu qua cơ chế Reveal Gate. Hệ thống sẵn sàng làm nền tảng cho các nghiệp vụ trao đổi thông tin nhạy cảm của cá nhân và doanh nghiệp.
+
+\clearpage
+
+\begin{center}\fontsize{16pt}{18pt}
+    \textbf{SECURE DIGITAL MAILING SERVICE MAT THU - SECRET LETTER\\}
+    \textbf{ABSTRACT}
+\end{center}
+
+\begin{english}
+In the context of increasing digital information security, sharing sensitive data (such as passwords, tokens, API keys) through conventional communication channels poses significant leakage risks. The Secret Letter project addresses this issue by building a web application for one-time secret sharing, combining Client-Side Encryption and a Zero-Knowledge architecture.
+
+The system is designed using the AES-256-GCM algorithm via the Web Crypto API, ensuring that data is always encrypted in the user's brows\-er before being sent to the server. A key feature is that the decryption key is embedded in the URL fragment, completely preventing the server from accessing the plaintext content. The Backend uses Golang combined with Redis to handle time-to-live (TTL) storage logic and ensure atomic operations so that a secret can only be read exactly once.
+
+Deployment results show that Secret Letter not only meets strict information security requirements but also maintains high performance, handles concurrent loads effectively, and protects against web crawlers through a Reveal Gate mechanism. The system is well-prepared to serve as a foundation for sensitive information exchange.
+\end{english}
+
+
+\clearpage
+
+% Trang Danh mục viết tắt: Đánh số La Mã tiếp tục, số trang giữa dưới
+
+% ==================== MỤC LỤC + DANH MỤC ====================
+% Các trang từ Mục lục đến Danh sách bảng: Đánh số La Mã tiếp tục, số trang giữa dưới, không header/footer
+\pagestyle{plain}
+
+\tableofcontents
+\clearpage
+
+\addcontentsline{toc}{chapter}{DANH MỤC HÌNH VẼ}
+\listoffigures
+\clearpage
+
+\addcontentsline{toc}{chapter}{DANH MỤC BẢNG BIỂU}
+\listoftables
+\clearpage
+
+\input{danhmucviettat}
+\clearpage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\chapter{GIỚI THIỆU CHUNG VỀ DỰ ÁN}
+\input{CHƯƠNG 1/1.1.LyDoChonDeTai}
+\input{CHƯƠNG 1/1.2.MucTieuDuAn}
+\input{CHƯƠNG 1/1.3.PhamViNghienCuu}
+\chapter{CƠ SỞ LÝ THUYẾT VÀ CÔNG NGHỆ}
+\input{CHƯƠNG 2/2.1.MatMaHocUngDung}
+\input{CHƯƠNG 2/2.2.KienTrucClientSideEncryption}
+\input{CHƯƠNG 2/2.3.CongNgheBackend}
+\input{CHƯƠNG 2/2.4.CongNgheFrontend}
+\chapter{PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG}
+\input{CHƯƠNG 3/3.1.PhanTichYeuCau}
+\input{CHƯƠNG 3/3.2.KienTrucTongThe}
+\input{CHƯƠNG 3/3.3.ThietKeLuongDuLieu}
+\input{CHƯƠNG 3/3.4.ThietKeAPI}
+\chapter{TRIỂN KHAI CHI TIẾT}
+\input{CHƯƠNG 4/4.1.CauTrucMaNguon}
+\input{CHƯƠNG 4/4.2.TrienKhaiFrontend}
+\input{CHƯƠNG 4/4.3.TrienKhaiBackend}
+\input{CHƯƠNG 4/4.4.GiaiQuyetBaiToanKyThuat}
+\chapter{ĐÁNH GIÁ BẢO MẬT, KIỂM THỬ VÀ VẬN HÀNH}
+\input{CHƯƠNG 5/5.1.MoHinhDeDoa}
+\input{CHƯƠNG 5/5.2.ChienLuocKiemThu}
+\input{CHƯƠNG 5/5.3.DanhGiaHieuNang}
+\input{CHƯƠNG 5/5.4.QuyTrinhCICD}
+\newpage
+
+\chapter*{KẾT LUẬN}
+\addcontentsline{toc}{chapter}{KẾT LUẬN}
+
+Dự án Secret Letter đã đạt được mục tiêu xây dựng một ứng dụng chia sẻ bí mật an toàn với kiến trúc Zero-Knowledge và mã hóa đầu-cuối tại trình duyệt (Client-side Encryption). Hệ thống đáp ứng tốt các yêu cầu khắt khe về bảo mật, hiệu năng, và trải nghiệm người dùng.
+
+Trong tương lai, dự án có thể mở rộng thêm các tính năng như gửi thông báo qua email, cấp quyền xem linh hoạt hơn, và triển khai các mô hình phân tích hành vi người dùng một cách ẩn danh.
+
+\clearpage
+
+
+\addcontentsline{toc}{chapter}{\textbf{TÀI LIỆU THAM KHẢO}}
+\renewcommand{\bibname}{\centering \textbf{\fontsize{16pt}{18pt}\selectfont TÀI LIỆU THAM KHẢO}}
+
+\printbibliography
+
+% ==================== PHỤ LỤC (nếu có) ======================
+% \newpage
+% \appendix
+% \renewcommand{\chaptername}{PHỤ LỤC} % Đổi tên CHƯƠNG thành PHỤ LỤC
+
+% \chapter{CÁC ĐOẠN MÃ NGUỒN CỐT LÕI}
+
+% \input{PHỤ LỤC/A_CodeCotLoi}
+% \newpage
+% \chapter{CẤU TRÚC MỘT VÀI GÓI TIN}
+% \input{PHỤ LỤC/B_CauTrucMotVaiGoiTin}
+
+\end{document}

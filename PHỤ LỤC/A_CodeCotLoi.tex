@@ -1,0 +1,184 @@
+
+
+% --- PHẦN A1 ---
+\section*{A1. Sinh cặp khóa RSA bằng Web Crypto API: crypto.ts}
+
+\begin{minted}[language=typescript, caption={Sinh cặp khóa RSA}, label={lst:gen-rsa-keypair}]{typescript}
+export async function generateRSAKeyPair(): Promise<RSAKeyPair> {
+    const keyPair = await crypto.subtle.generateKey(
+        RSA_ALGORITHM,
+        true, // extractable
+        ["encrypt", "decrypt"]
+    );
+
+    return {
+        publicKey: keyPair.publicKey,
+        privateKey: keyPair.privateKey,
+    };
+}
+\end{minted}
+
+% --- PHẦN A2 ---
+\section*{A2. Mã hóa AES-GCM + đóng gói (nonce + ciphertext + tag $\to$ Base64): crypto.ts}
+
+\begin{minted}[language=typescript, caption={Hàm mã hóa AES-GCM}, label={lst:aes-encrypt}]{typescript}
+export async function aesEncrypt(
+    plaintext: string,
+    aesKey: CryptoKey,
+    additionalData?: BufferSource
+): Promise<string> {
+    const nonce = crypto.getRandomValues(new Uint8Array(NONCE_LENGTH));
+    const plaintextBytes = stringToArrayBuffer(plaintext);
+
+    const encryptParams: AesGcmParams = { name: "AES-GCM", iv: nonce };
+    if (additionalData) {
+        encryptParams.additionalData = additionalData;
+    }
+
+    const ciphertext = await crypto.subtle.encrypt(
+        encryptParams,
+        aesKey,
+        plaintextBytes
+    );
+
+    const combined = new Uint8Array(nonce.length + ciphertext.byteLength);
+    combined.set(nonce, 0);
+    combined.set(new Uint8Array(ciphertext), nonce.length);
+
+    return arrayBufferToBase64(combined.buffer);
+}
+\end{minted}
+
+\noindent (đóng gói thông điệp khi gửi, gắn nhãn E2EE):
+
+\begin{minted}[language=typescript, caption={Xử lý gửi tin nhắn có mã hóa}, label={lst:send-msg-logic}]{typescript}
+const encryptResult = await encryptMessage(otherUser._id, currentValue.trim());
+if (encryptResult) {
+  const encryptedContent = `E2EE:${encryptResult.ciphertext}`;
+  await sendDirectMessage(
+    otherUser._id,
+    encryptedContent,
+    undefined,
+    currentValue.trim(),
+    encryptResult.counter
+  );
+}
+\end{minted}
+
+% --- PHẦN A3 ---
+\section*{A3. Dẫn xuất khóa từ PIN bằng PBKDF2: crypto.ts}
+
+\begin{minted}[language=typescript, caption={Dẫn xuất khóa AES từ PIN thông qua PBKDF2}, label={lst:derive-key-pin}]{typescript}
+export async function deriveKeyFromPIN(
+    pin: string,
+    salt: Uint8Array,
+    iterations: number = 100000
+): Promise<CryptoKey> {
+    const pinBuffer = stringToArrayBuffer(pin);
+
+    const keyMaterial = await crypto.subtle.importKey(
+        "raw",
+        pinBuffer,
+        "PBKDF2",
+        false,
+        ["deriveBits", "deriveKey"]
+    );
+
+    const derivedKey = await crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt,
+            iterations,
+            hash: "SHA-256",
+        } as Pbkdf2Params,
+        keyMaterial,
+        {
+            name: "AES-GCM",
+            length: 256,
+        },
+        true,
+        ["encrypt", "decrypt"],
+    );
+
+    return derivedKey;
+}
+\end{minted}
+
+% --- PHẦN 4 ---
+\section*{A4. Middleware/Dependency xác thực JWT: auth.py}
+
+\begin{minted}[language=python, caption={Dependency lấy thông tin user hiện tại từ Token}, label={lst:backend-get-current-user}]{python}
+security = HTTPBearer()
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> User:
+    try:
+        token = credentials.credentials
+        user_id = verify_access_token(token)
+
+        if not user_id:
+            raise credentials_exception
+
+        user = await User.get(user_id)
+        if user is None:
+            raise credentials_exception
+
+        return user
+    except ValueError:
+        raise credentials_exception
+    except Exception as e:
+        raise credentials_exception
+\end{minted}
+
+\noindent JWT verify nằm tại: \texttt{security.py}
+
+\begin{minted}[language=python, caption={Hàm giải mã và kiểm tra JWT Token}, label={lst:backend-verify-token}]{python}
+def verify_access_token(token: str) -> str:
+    settings = get_settings()
+    try:
+        payload = jwt.decode(token, settings.secret_key,
+                             algorithms=[settings.algorithm])
+        return str(payload["sub"])
+    except (KeyError, JWTError) as exc:
+        raise ValueError("Invalid authentication token") from exc
+\end{minted}
+
+% --- PHẦN A5 ---
+\section*{A5. WebSocket chuyển tiếp tin nhắn realtime (emit/broadcast): con\-nec\-tion\_ma\-na\-ger.py}
+
+\begin{minted}[language=python, caption={Hàm phát tin nhắn tới client qua WebSocket}, label={lst:ws-emit-msg}]{python}
+async def emit_new_message(
+    self,
+    conversation_id: str,
+    message: dict,
+    conversation_data: dict,
+    unread_counts: dict,
+    participant_ids: List[str] | None = None
+) -> None:
+    data = {
+        "message": message,
+        "conversation": conversation_data,
+        "unreadCounts": unread_counts,
+    }
+
+    if participant_ids:
+        for user_id in participant_ids:
+            self.join_room(user_id, conversation_id)
+            await self.send_to_user(user_id, "new-message", data)
+    else:
+        await self.broadcast_to_room(conversation_id, "new-message", data)
+\end{minted}
+
+\noindent Gọi emit khi lưu tin nhắn: \texttt{message\_service.py}
+
+\begin{minted}[language=python, caption={Kích hoạt sự kiện WebSocket sau khi lưu tin nhắn}, label={lst:service-call-emit}]{python}
+await manager.emit_new_message(
+    conversation_id=str(conversation.id),
+    message=self._format_message(message),
+    conversation_data=await self._format_conversation_for_ws(
+        conversation, include_full=is_new_conversation),
+    unread_counts={str(k): v for k, v in conversation.unread_counts.items()},
+    participant_ids=participant_ids
+)
+\end{minted}

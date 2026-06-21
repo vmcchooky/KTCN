@@ -1,0 +1,59 @@
+\section{Mật mã học ứng dụng}
+
+Trong việc bảo vệ dữ liệu nhạy cảm trên môi trường trực tuyến, mã hóa là cơ chế phòng thủ cốt lõi. Dự án \textit{Secret Letter} áp dụng thuật toán mã hóa đối xứng AES (Advanced Encryption Standard) với chế độ hoạt động GCM (Galois/Counter Mode), kết hợp độ dài khóa 256-bit (AES-256-GCM). Đây là một trong những chuẩn mã hóa được tin dùng rộng rãi và được chuẩn hóa toàn cầu, đáp ứng các yêu cầu về cả hiệu năng và độ an toàn \parencite{nist-sp800-38d-gcm}.
+
+\subsection{Thuật toán AES và chế độ GCM}
+AES là thuật toán mã hóa khối (block cipher) hoạt động với kích thước khối cố định là 128-bit và độ dài khóa có thể là 128, 192 hoặc 256-bit. Trong dự án này, độ dài khóa 256-bit được sử dụng nhằm cung cấp mức độ bảo vệ vững chắc trước các phương pháp tấn công vét cạn (brute-force).
+
+Tuy nhiên, bản thân thuật toán mã hóa khối chỉ phát huy hiệu quả khi được kết hợp với một chế độ hoạt động (mode of operation) phù hợp. GCM là một chế độ hoạt động cung cấp cơ chế \textbf{Mã hóa xác thực kèm dữ liệu liên kết (Authenticated Encryption with Associated Data - AEAD)}. 
+GCM kết hợp hai chức năng:
+\begin{itemize}
+    \item \textbf{Bảo mật (Confidentiality):} GCM sử dụng biến thể của chế độ CTR (Counter) để mã hóa luồng dữ liệu, cho phép quá trình mã hóa và giải mã được thực hiện song song, tối ưu hóa đáng kể tốc độ xử lý phần mềm.
+    \item \textbf{Xác thực (Authenticity):} GCM sử dụng phép nhân trên trường Galois hữu hạn (GHASH) để tạo ra một thẻ xác thực (Authentication Tag). Thẻ này đóng vai trò như một chữ ký số đi kèm bản mã (ciphertext), giúp phát hiện bất kỳ sự can thiệp, biến đổi nào đối với bản mã trong quá trình truyền tải \parencite{nist-sp800-38d-gcm}.
+\end{itemize}
+
+Quá trình mã hóa AES-GCM yêu cầu ba yếu tố đầu vào chính: Khóa bí mật (Secret Key), Bản rõ (Plaintext) và một giá trị ngẫu nhiên không lặp lại gọi là Vector khởi tạo (Initialization Vector - IV hoặc Nonce). Trong dự án \textit{Secret Letter}, IV được thiết lập với độ dài tiêu chuẩn là 12 byte (96-bit) và được tạo ngẫu nhiên cho mỗi phiên mã hóa. Việc sử dụng IV đảm bảo rằng hai thông điệp giống hệt nhau khi được mã hóa bằng cùng một khóa cũng sẽ tạo ra hai bản mã hoàn toàn khác biệt. Ở đầu ra, thuật toán trả về bản mã đính kèm thẻ xác thực.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm and 1cm,
+    box/.style={rectangle, rounded corners, draw=blue!80!black, fill=blue!10, very thick, minimum width=3cm, minimum height=1.2cm, align=center, font=\bfseries},
+    input/.style={rectangle, draw=green!60!black, fill=green!5, very thick, minimum width=2.5cm, minimum height=1cm, align=center},
+    output/.style={rectangle, draw=red!70!black, fill=red!10, very thick, minimum width=2.5cm, minimum height=1cm, align=center},
+    arrow/.style={->, >=stealth, thick, draw=gray!80!black}
+]
+
+% Nodes
+\node[input] (key) {Khóa (Key)\\256-bit};
+\node[input] (plaintext) [left=of key] {Bản rõ\\(Plaintext)};
+\node[input] (iv) [right=of key] {Nonce (IV)\\96-bit};
+
+\node[box] (aesgcm) [below=of key, yshift=-0.5cm] {Thuật toán\\AES-256-GCM};
+
+\node[output] (ciphertext) [below left=of aesgcm, xshift=1.5cm, yshift=-0.5cm] {Bản mã\\(Ciphertext)};
+\node[output] (tag) [below right=of aesgcm, xshift=-1.5cm, yshift=-0.5cm] {Thẻ xác thực\\(Auth Tag)};
+
+% Arrows
+\draw[arrow] (plaintext) |- ([yshift=3mm]aesgcm.west);
+\draw[arrow] (key) -- (aesgcm);
+\draw[arrow] (iv) |- ([yshift=3mm]aesgcm.east);
+
+\draw[arrow] ([xshift=-1cm]aesgcm.south) -- (ciphertext.north);
+\draw[arrow] ([xshift=1cm]aesgcm.south) -- (tag.north);
+
+\end{tikzpicture}
+\caption{Mô hình tổng quan đầu vào và đầu ra của thuật toán AES-GCM}
+\label{fig:aes_gcm}
+\end{figure}
+
+\subsection{Lý do chọn AES-256-GCM}
+Việc lựa chọn AES-256-GCM làm thuật toán mã hóa cốt lõi dựa trên các cơ sở kỹ thuật sau:
+\begin{enumerate}
+    \item \textbf{Khả năng chống giả mạo dữ liệu (Tamper Resistance):} Khác với các chế độ cũ như CBC hay ECB, GCM tạo ra Authentication Tag. Khi giải mã, nếu một bit bất kỳ của bản mã hoặc IV bị kẻ tấn công thay đổi trên đường truyền, bước xác thực sẽ thất bại và hàm giải mã sẽ từ chối trả về kết quả. Điều này giúp ngăn chặn các cuộc tấn công thay đổi bản mã (ciphertext malleability attack).
+    \item \textbf{Hỗ trợ phần cứng và hiệu năng xử lý:} Hầu hết các vi xử lý hiện đại (CPU) ở cả máy tính lẫn điện thoại đều tích hợp tập lệnh tăng tốc phần cứng cho AES và phép toán Galois. Nhờ đó, AES-GCM đạt được thông lượng xử lý cao, độ trễ thấp, đặc biệt phù hợp cho các ứng dụng web mã hóa trực tiếp trên thiết bị của người dùng (Client-side).
+    \item \textbf{Tính chuẩn hóa cao trên Web:} AES-GCM là chuẩn mã hóa ưu tiên được hỗ trợ đầy đủ bởi \textit{Web Cryptography API} (\textcite{w3c-webcrypto-2017}). Việc API này được tích hợp sẵn (native) trên mọi trình duyệt hiện đại giúp các tác vụ tính toán mật mã diễn ra an toàn ngay tại máy khách mà không cần nhập các thư viện bên thứ ba, làm giảm bớt rủi ro từ các lỗ hổng mã nguồn mở.
+    \item \textbf{An toàn trong Kỷ nguyên Lượng tử (Post-Quantum Security):} Theo báo cáo chuyên sâu của NIST về Mật mã Hậu lượng tử \parencite{nist-ir8105-pqc}, sự ra đời của máy tính lượng tử cùng thuật toán Grover mang lại khả năng tăng tốc độ tìm kiếm bình phương (quadratic speedup) khi tấn công vét cạn các hệ mật đối xứng. Theo đó, thuật toán Grover sẽ làm giảm độ an toàn hiệu dụng của AES-256 đi một nửa, tức là từ 256-bit xuống còn tương đương với độ an toàn 128-bit. Tuy nhiên, mức độ bảo mật 128-bit lượng tử vẫn vượt quá khả năng tính toán thực tế của bất kỳ hệ thống nào trong tương lai. Nhờ vậy, việc triển khai khóa AES-256 giúp \textit{Secret Letter} tiếp tục duy trì độ an toàn lâu dài ngay cả khi máy tính lượng tử trở nên phổ biến.
+\end{enumerate}
+
+Sự kết hợp giữa AES-256 (bảo vệ bằng khóa dài) và GCM (xác thực tính toàn vẹn) giúp nền tảng đạt được sự cân bằng hợp lý giữa khả năng bảo mật nghiêm ngặt và hiệu năng vận hành thực tế mà không cần thêm sơ đồ hạ tầng phức tạp.

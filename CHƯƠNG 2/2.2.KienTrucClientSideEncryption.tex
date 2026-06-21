@@ -1,0 +1,31 @@
+\section{Kiến trúc Client-Side Encryption}
+
+\subsection{Khái niệm và Nguyên lý hoạt động}
+Mã hóa phía máy khách (Client-Side Encryption - CSE) là một mô hình bảo mật mà trong đó, quá trình mã hóa dữ liệu được thực hiện hoàn toàn trên thiết bị của người dùng (như trình duyệt web, điện thoại di động) trước khi bất kỳ dữ liệu nào được truyền tải qua mạng lưới internet hoặc lưu trữ trên máy chủ của bên thứ ba. 
+
+Trái ngược với mã hóa phía máy chủ (Server-Side Encryption) – nơi máy chủ nắm giữ cả bản rõ và khóa giải mã – kiến trúc CSE đảm bảo rằng máy chủ trung gian đóng vai trò như một hệ thống "mù" (Zero-Knowledge). Máy chủ chỉ lưu trữ các cụm dữ liệu đã được mã hóa ngẫu nhiên và hoàn toàn không có khả năng đọc, phân tích hay khôi phục lại nội dung gốc do không sở hữu khóa bí mật.
+
+\subsection{Sơ đồ kiến trúc toàn trình (End-to-End)}
+Để hiện thực hóa mô hình Zero-Knowledge trong dự án \textit{Secret Letter}, kiến trúc truyền tải dữ liệu và khóa giải mã được thiết kế như sơ đồ Hình \ref{fig:cse_arch} dưới đây:
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\input{img/cse_architecture.tex}
+}
+\caption{Kiến trúc Client-Side Encryption và cơ chế phân phối khóa qua URL Fragment}
+\label{fig:cse_arch}
+\end{figure}
+
+\subsection{Cơ chế bảo vệ bằng URL Fragment}
+Một trong những thách thức lớn nhất của Client-Side Encryption là làm thế nào để truyền tải khóa giải mã từ người gửi đến người nhận một cách an toàn mà không bị máy chủ trung gian đánh chặn. \textit{Secret Letter} giải quyết triệt để vấn đề này bằng cách tận dụng thuộc tính \textbf{URL Fragment} (phần chuỗi ký tự đứng sau dấu thăng \texttt{\#}).
+
+Theo đặc tả giao thức HTTP do W3C và IETF quy định, các trình duyệt web khi thực hiện các truy vấn GET đến một máy chủ sẽ \textbf{tuyệt đối không bao giờ gửi phần Fragment} trong HTTP Request. Đoạn văn bản sau dấu \texttt{\#} chỉ tồn tại ở bộ nhớ cục bộ (local memory) của trình duyệt để xử lý logic nội bộ.
+
+Trong dự án:
+\begin{enumerate}
+    \item \textbf{Phía gửi:} Khóa AES-256-GCM ngẫu nhiên được mã hóa dạng \texttt{Base64Url} và đính kèm vào đường dẫn (ví dụ: \texttt{https://secret.quorix.io.vn/secret/12345\#Kh0aB1M4t}). Phần bản mã được gửi lên máy chủ lưu trữ với định danh là \texttt{12345}.
+    \item \textbf{Phía nhận:} Khi người dùng truy cập vào liên kết, trình duyệt gửi yêu cầu lấy bản mã dựa vào ID \texttt{12345}. Sau khi nhận được bản mã từ máy chủ, mã JavaScript trên trình duyệt của người nhận sẽ trích xuất khóa \texttt{Kh0aB1M4t} từ thanh địa chỉ để tiến hành giải mã cục bộ.
+\end{enumerate}
+
+Cơ chế này mang lại độ bảo mật vượt trội: ngay cả khi máy chủ Backend bị tin tặc chiếm quyền điều khiển hoàn toàn và thu thập toàn bộ cơ sở dữ liệu, chúng cũng chỉ có trong tay những chuỗi ký tự vô nghĩa vì \textbf{khóa giải mã chưa bao giờ rời khỏi thiết bị của người dùng để đi lên mạng Internet}. Điều này thiết lập nên kiến trúc Zero-Knowledge đúng nghĩa.

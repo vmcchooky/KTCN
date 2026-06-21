@@ -1,0 +1,18 @@
+\section{Phạm vi nghiên cứu}
+
+Để đảm bảo tính khả thi và tập trung nâng cao tính bảo mật trong giao tiếp kỹ thuật số ngắn hạn, dự án được giới hạn trong các phạm vi sau:
+
+\textbf{Phạm vi chức năng và dữ liệu:}
+\begin{itemize}
+    \item Hệ thống trong giai đoạn này chủ yếu hỗ trợ việc mã hóa và chia sẻ nội dung dưới dạng văn bản (text), phục vụ cho các trường hợp trao đổi thông tin ngắn như chuỗi mật khẩu, đường dẫn bí mật, cấu hình hệ thống hay mã thông báo truy cập.
+    \item Việc hỗ trợ mã hóa và truyền tải các tệp tin đa phương tiện lớn (hình ảnh, video, tài liệu dung lượng cao) sẽ nằm ngoài phạm vi của phiên bản hiện tại để tập trung tối ưu hóa tốc độ và độ tin cậy của dịch vụ cốt lõi.
+\end{itemize}
+
+\textbf{Phạm vi công nghệ:}
+\begin{itemize}
+    \item \textit{Trình duyệt và Client-side:} Sử dụng các tiêu chuẩn web hiện đại, trong đó yêu cầu trình duyệt của người dùng phải hỗ trợ Web Crypto API để có thể thực thi các tác vụ mã hóa, giải mã AES-256-GCM.
+    \item \textit{Máy chủ Backend:} Hệ thống được xây dựng để cung cấp các API RESTful xử lý bằng Golang và lưu trữ trạng thái tại Redis. Các cơ sở dữ liệu quan hệ (SQL) hay các hình thức lưu trữ ổ cứng vĩnh viễn (persistent storage) sẽ không được sử dụng nhằm phù hợp với tính chất tự hủy và giảm thiểu lưu vết của hệ thống.
+\end{itemize}
+
+\textbf{Đối tượng và môi trường áp dụng:}
+Sản phẩm hướng tới các lập trình viên, chuyên gia công nghệ thông tin hoặc bất kỳ người dùng cá nhân hay doanh nghiệp nào có nhu cầu chia sẻ dữ liệu nhạy cảm thông qua các kênh trung gian kém an toàn (Zalo, Messenger, Email, v.v.) mà vẫn muốn cải thiện mức độ an toàn thông tin.

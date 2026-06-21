@@ -1,0 +1,133 @@
+% --- B1 ---
+% Sửa: thêm \_ để thoát ký tự, thêm \- vào giữa e2eeService để ngắt dòng
+\section*{B1. PublicKeyRegister (POST /api/e2ee/keys/register): e2ee.py, e2eeSer\-vice.ts}
+
+\begin{minted}[language=json, caption={PublicKeyRegister payload}, label={lst:publickey-register}]{json}
+{
+  "public_key": "BASE64_SPKI_RSA_PUBLIC_KEY",
+  "fingerprint": "SHA256_FINGERPRINT",
+  "device_id": "optional-device-id",
+  "device_name": "optional-device-name"
+}
+\end{minted}
+
+% --- B2 ---
+\section*{B2. SessionKeyExchange (POST /api/e2ee/session/exchange): e2ee.py, e2eeSer\-vice.ts}
+
+\begin{minted}[language=json, caption={SessionKeyExchange payload}, label={lst:session-key-exchange}]{json}
+{
+  "recipient_id": "USER_ID",
+  "encrypted_session_key": "BASE64_ENCRYPTED_AES_KEY",
+  "target_device_id": "optional-device-id",
+  "conversation_id": "optional-conversation-id",
+  "key_version": 2,
+  "signature": "BASE64_RSA_PSS_SIGNATURE",
+  "timestamp": 1736251234567
+}
+\end{minted}
+
+% --- B3 ---
+\section*{B3. PendingKeyEnvelope (GET /api/e2ee/pending-keys): e2ee.py, e2eeSer\-vice.ts}
+
+\begin{minted}[language=json, caption={PendingKeyEnvelope payload}, label={lst:pending-key-envelope}]{json}
+{
+  "id": "PENDING_KEY_ID",
+  "conversation_id": "optional-conversation-id",
+  "recipient_user_id": "USER_ID",
+  "recipient_device_id": "optional-device-id",
+  "key_version": 2,
+  "encrypted_session_key": "BASE64_ENCRYPTED_AES_KEY",
+  "sender_user_id": "SENDER_ID",
+  "signature": "BASE64_RSA_PSS_SIGNATURE",
+  "timestamp": 1736251234567,
+  "created_at": "2026-01-06T21:45:00Z"
+}
+\end{minted}
+
+% --- B4 ---
+\section*{B4. PendingKeyAck (POST /api/e2ee/pending-keys/ack): e2ee.py, e2eeSer\-vice.ts}
+
+\begin{minted}[language=json, caption={PendingKeyAck payload}, label={lst:pending-key-ack}]{json}
+{
+  "ids": ["PENDING_KEY_ID_1", "PENDING_KEY_ID_2"]
+}
+\end{minted}
+
+% --- B5 ---
+% Sửa: websocket_router -> websocket\-\_router (cho phép ngắt dòng trước dấu _)
+\section*{B5. WebSocketEnvelope (WS runtime): websocket\-\_router.py, connection\-\_manager.py}
+
+\begin{minted}[language=json, caption={WebSocket envelope}, label={lst:ws-envelope}]{json}
+{
+  "event": "event-name",
+  "data": {
+    "any": "payload"
+  }
+}
+\end{minted}
+
+% --- B6 ---
+% Sửa: api_e2ee -> api\-\_e2ee, dùng $\to$ cho mũi tên đẹp hơn
+\section*{B6. WS session-key-exchange (server $\to$ client): api\-\_e2ee.py, websocket\-\_router.py}
+
+\begin{minted}[language=json, caption={WS session-key-exchange payload}, label={lst:ws-session-key-exchange}]{json}
+{
+  "event": "session-key-exchange",
+  "data": {
+    "senderId": "SENDER_ID",
+    "senderUsername": "alice",
+    "senderDisplayName": "Alice",
+    "encryptedSessionKey": "BASE64_ENCRYPTED_AES_KEY",
+    "deviceId": "device-id",
+    "recipientDeviceId": "device-id",
+    "conversationId": "optional-conversation-id",
+    "keyVersion": 2,
+    "signature": "BASE64_RSA_PSS_SIGNATURE",
+    "timestamp": 1736251234567
+  }
+}
+\end{minted}
+
+% --- B7 ---
+\section*{B7. WS new-message (server $\to$ client): message\-\_service.py, connection\-\_manager.py}
+
+\begin{minted}[language=json, caption={WS new-message payload}, label={lst:ws-new-message}]{json}
+{
+  "event": "new-message",
+  "data": {
+    "message": {
+      "_id": "MESSAGE_ID",
+      "conversationId": "CONVO_ID",
+      "senderId": "USER_ID",
+      "content": "E2EE:BASE64_CIPHERTEXT",
+      "imgUrl": null,
+      "createdAt": "2026-01-06T21:45:00Z",
+      "keyVersion": 2,
+      "counter": 12
+    },
+    "conversation": {
+      "_id": "CONVO_ID",
+      "type": "direct",
+      "lastMessage": {
+        "_id": "MESSAGE_ID",
+        "content": "E2EE:BASE64_CIPHERTEXT",
+        "senderId": "USER_ID",
+        "createdAt": "2026-01-06T21:45:00Z",
+        "counter": 12,
+        "keyVersion": 2,
+        "sender": {
+          "_id": "USER_ID",
+          "displayName": "",
+          "avatarUrl": null
+        }
+      },
+      "lastMessageAt": "2026-01-06T21:45:00Z",
+      "createdAt": "2026-01-06T20:00:00Z",
+      "updatedAt": "2026-01-06T21:45:00Z"
+    },
+    "unreadCounts": {
+      "USER_ID": 1
+    }
+  }
+}
+\end{minted}
