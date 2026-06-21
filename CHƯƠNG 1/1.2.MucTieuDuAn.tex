@@ -1,13 +1,13 @@
 \section{Mục tiêu dự án}
 
-Dự án "Dịch vụ thư tín số an toàn Mật thư - Secret Letter" được thực hiện nhằm hướng đến các mục tiêu chính yếu sau:
+Dự án \textbf{Secret Letter} được định hình nhằm xây dựng một cơ sở hạ tầng trung chuyển thông tin nhạy cảm (mật khẩu, token, khóa API) theo tiêu chuẩn bảo mật hiện đại. Mục tiêu không chỉ dừng lại ở việc tạo ra một công cụ tiện ích. Cốt lõi của hệ thống là minh chứng tính khả thi của kiến trúc phi tín nhiệm (trustless). Thay vì yêu cầu người dùng đặt niềm tin vào nhà cung cấp, nền tảng trao lại quyền kiểm soát dữ liệu vòng đời ngắn (short-lived data) về tay người gửi. 
 
-\textbf{Mục tiêu tổng quát:}
-Xây dựng một ứng dụng web hoạt động độc lập, cho phép người dùng chia sẻ các đoạn thông tin nhạy cảm (như mật khẩu, token, khóa API) một cách an toàn và dễ sử dụng. Hệ thống hướng đến nguyên tắc cốt lõi: bí mật chỉ có thể được xem một lần duy nhất và hạn chế tối đa khả năng phía máy chủ đọc được nội dung gốc của thông điệp.
+Để hiện thực hóa tầm nhìn trên, dự án đặt ra ba mục tiêu kỹ thuật cụ thể:
 
-\textbf{Mục tiêu cụ thể:}
 \begin{itemize}
-    \item \textit{Về mặt lý thuyết:} Tìm hiểu và ứng dụng các chuẩn mã hóa tiên tiến hiện nay (đặc biệt là AES-256-GCM), nghiên cứu nguyên lý hoạt động của kiến trúc Zero-Knowledge và cơ chế mã hóa phía máy khách (Client-side Encryption) thông qua Web Crypto API.
-    \item \textit{Về mặt phát triển ứng dụng:} Thiết kế và triển khai thành công hệ thống Backend hiệu năng cao sử dụng ngôn ngữ Golang kết hợp với Redis để xử lý lưu trữ tạm thời (in-memory) và quản lý vòng đời (Time-to-Live) của các thông điệp một cách tối ưu. Ở phía Frontend, xây dựng giao diện trực quan, dễ tương tác giúp quá trình mã hóa và chia sẻ diễn ra liền mạch trên trình duyệt.
-    \item \textit{Về mặt bảo mật hệ thống:} Triển khai các cơ chế bảo vệ nâng cao như Reveal Gate để hỗ trợ ngăn chặn sự thu thập tự động từ các bot (web crawlers) và phần mềm quét liên kết trên các nền tảng nhắn tin. Đồng thời, áp dụng tính nguyên tử (atomic) trong quá trình truy xuất dữ liệu để đảm bảo thông điệp bị tiêu hủy ngay sau lượt đọc đầu tiên.
+    \item \textbf{Cơ sở lý thuyết và Thuật toán:} Nghiên cứu sâu cơ chế \textit{Mã hóa phía máy khách (Client-side Encryption)} theo mô hình \textit{Zero-Knowledge}. Trọng tâm là việc tích hợp chuẩn mã hóa xác thực AES-256-GCM qua Web Crypto API. Sự đánh đổi (trade-off) trong mục tiêu này là việc từ bỏ khả năng khôi phục nội dung khi mất khóa để đổi lấy việc thu hẹp tối đa rủi ro lộ lọt bản rõ từ phía máy chủ.
+    
+    \item \textbf{Hiệu năng và Kiến trúc Hệ thống:} Phát triển một Backend phân tán, chịu tải cao bằng Golang. Tối ưu hóa tốc độ xử lý đọc/ghi thông qua hệ quản trị cơ sở dữ liệu trên bộ nhớ (in-memory) Redis. Đặc điểm kiến trúc ở đây là dữ liệu không được lưu trữ dai dẳng trên đĩa cứng (non-persistent). Chúng chịu sự giám sát nghiêm ngặt của vòng đời Time-to-Live (TTL), đảm bảo bản mã sẽ bị tự động xóa bỏ khi hết hạn định.
+    
+    \item \textbf{Phòng vệ chủ động và Tính nguyên tử:} Triển khai lớp rào chắn Reveal Gate (Nút xác nhận thủ công) nhằm chọc thủng nỗ lực của các thuật toán dò quét tự động (web crawlers, link preview bots) trên các nền tảng mạng xã hội. Song song đó, thiết kế luồng truy xuất dữ liệu phải đạt tính nguyên tử (atomic operations) trên Redis. Mục đích là giới hạn quyền truy xuất "chỉ đọc một lần" (One-time read), chặn đứng các cuộc tấn công tranh giành tài nguyên (Race condition) nếu tin tặc thử gửi hàng nghìn request cùng một thời điểm.
 \end{itemize}

@@ -1,12 +1,12 @@
 \section{Kiến trúc Client-Side Encryption}
 
 \subsection{Khái niệm và Nguyên lý hoạt động}
-Mã hóa phía máy khách (Client-Side Encryption - CSE) là một mô hình bảo mật mà trong đó, quá trình mã hóa dữ liệu được thực hiện hoàn toàn trên thiết bị của người dùng (như trình duyệt web, điện thoại di động) trước khi bất kỳ dữ liệu nào được truyền tải qua mạng lưới internet hoặc lưu trữ trên máy chủ của bên thứ ba. 
+Mã hóa phía máy khách (Client-Side Encryption - CSE) thay đổi mô hình bảo mật truyền thống. Thay vì phó mặc tính riêng tư của dữ liệu cho năng lực phòng ngự của nhà cung cấp dịch vụ, phương pháp này dịch chuyển quyền kiểm soát về phía thiết bị đầu cuối (trình duyệt web, smartphone). Quá trình chuyển đổi bản rõ thành bản mã diễn ra cục bộ trước khi bất kỳ byte dữ liệu nào rời khỏi thiết bị để truyền tải qua môi trường mạng phi tín nhiệm.
 
-Trái ngược với mã hóa phía máy chủ (Server-Side Encryption) – nơi máy chủ nắm giữ cả bản rõ và khóa giải mã – kiến trúc CSE đảm bảo rằng máy chủ trung gian đóng vai trò như một hệ thống "mù" (Zero-Knowledge). Máy chủ chỉ lưu trữ các cụm dữ liệu đã được mã hóa ngẫu nhiên và hoàn toàn không có khả năng đọc, phân tích hay khôi phục lại nội dung gốc do không sở hữu khóa bí mật.
+Sự khác biệt cốt lõi nằm ở việc phân lập thẩm quyền. Trong các kiến trúc Server-Side Encryption thông thường, máy chủ vừa đóng vai trò két sắt, vừa giữ chìa khóa. Ngược lại, CSE thiết lập một nguyên lý "mù" (Zero-Knowledge) đối với bên thứ ba. Máy chủ trung gian lúc này chỉ đóng vai trò là một kho lưu trữ các khối dữ liệu đã bị xáo trộn. Sự thiếu vắng khóa bí mật khiến Backend không có khả năng phân tích hay soi chiếu nội dung gốc. Sự đánh đổi (trade-off) ở đây là hệ thống không thể cung cấp các tính năng tiện ích dựa trên việc phân tích văn bản (như công cụ tìm kiếm nội dung), bù lại, nó gia tăng đáng kể chi phí phá mã ngay cả khi kẻ tấn công chiếm quyền truy cập vào cơ sở dữ liệu.
 
 \subsection{Sơ đồ kiến trúc toàn trình (End-to-End)}
-Để hiện thực hóa mô hình Zero-Knowledge trong dự án \textit{Secret Letter}, kiến trúc truyền tải dữ liệu và khóa giải mã được thiết kế như sơ đồ Hình \ref{fig:cse_arch} dưới đây:
+Để cụ thể hóa triết lý Zero-Knowledge trong dự án \textit{Secret Letter}, luồng dữ liệu và cơ sở hạ tầng trao đổi khóa được phác họa chi tiết qua Hình \ref{fig:cse_arch} dưới đây:
 
 \begin{figure}[H]
 \centering
@@ -18,14 +18,14 @@ Trái ngược với mã hóa phía máy chủ (Server-Side Encryption) – nơi
 \end{figure}
 
 \subsection{Cơ chế bảo vệ bằng URL Fragment}
-Một trong những thách thức lớn nhất của Client-Side Encryption là làm thế nào để truyền tải khóa giải mã từ người gửi đến người nhận một cách an toàn mà không bị máy chủ trung gian đánh chặn. \textit{Secret Letter} giải quyết triệt để vấn đề này bằng cách tận dụng thuộc tính \textbf{URL Fragment} (phần chuỗi ký tự đứng sau dấu thăng \texttt{\#}).
+Một trong những thách thức cốt lõi của Client-Side Encryption không nằm ở thuật toán mã hóa, mà là bài toán phân phối khóa (Key Distribution). Làm thế nào để luân chuyển chìa khóa từ người gửi đến người nhận mà không bị máy chủ trung gian thu thập trái phép? \textit{Secret Letter} giải quyết bài toán này bằng cách khai thác một đặc tính của giao thức web: \textbf{URL Fragment} (phần chuỗi ký tự nối sau ký hiệu \texttt{\#}).
 
-Theo đặc tả giao thức HTTP do W3C và IETF quy định, các trình duyệt web khi thực hiện các truy vấn GET đến một máy chủ sẽ \textbf{tuyệt đối không bao giờ gửi phần Fragment} trong HTTP Request. Đoạn văn bản sau dấu \texttt{\#} chỉ tồn tại ở bộ nhớ cục bộ (local memory) của trình duyệt để xử lý logic nội bộ.
+Theo đặc tả HTTP được quy định bởi W3C và IETF, trình duyệt web luôn có cơ chế chủ động loại bỏ phần Fragment trước khi đóng gói các HTTP Request gửi ra ngoài. Đoạn văn bản đứng sau dấu \texttt{\#} chỉ được lưu giữ trong không gian bộ nhớ cục bộ (local memory) của trình duyệt, phục vụ chủ yếu cho mục đích định tuyến giao diện Frontend.
 
-Trong dự án:
+Luồng thực thi trong dự án được tổ chức như sau:
 \begin{enumerate}
-    \item \textbf{Phía gửi:} Khóa AES-256-GCM ngẫu nhiên được mã hóa dạng \texttt{Base64Url} và đính kèm vào đường dẫn (ví dụ: \texttt{https://secret.quorix.io.vn/secret/12345\#Kh0aB1M4t}). Phần bản mã được gửi lên máy chủ lưu trữ với định danh là \texttt{12345}.
-    \item \textbf{Phía nhận:} Khi người dùng truy cập vào liên kết, trình duyệt gửi yêu cầu lấy bản mã dựa vào ID \texttt{12345}. Sau khi nhận được bản mã từ máy chủ, mã JavaScript trên trình duyệt của người nhận sẽ trích xuất khóa \texttt{Kh0aB1M4t} từ thanh địa chỉ để tiến hành giải mã cục bộ.
+    \item \textbf{Phía gửi:} Một khóa ngẫu nhiên AES-256-GCM sau khi sinh ra sẽ được mã hóa dạng \texttt{Base64Url} và đính kèm vào đuôi đường dẫn (ví dụ: \texttt{https://secret.quorix.io.vn/secret/12345\#Kh0aB1M4t}). Lúc này, chỉ có phần bản mã (ciphertext) mới được đẩy lên Backend và định danh bởi ID \texttt{12345}.
+    \item \textbf{Phía nhận:} Khi người nhận nhấp vào liên kết, trình duyệt khởi tạo luồng gọi API để truy vấn bản mã mang ID \texttt{12345}. Ngay khi khối dữ liệu đáp trả về đến máy khách, mã JavaScript nội tại sẽ lập tức trích xuất chìa khóa \texttt{Kh0aB1M4t} đang nằm chờ sẵn trên thanh địa chỉ, từ đó thực thi thao tác giải mã mà không phát sinh thêm bất kỳ giao tiếp mạng nào.
 \end{enumerate}
 
-Cơ chế này mang lại độ bảo mật vượt trội: ngay cả khi máy chủ Backend bị tin tặc chiếm quyền điều khiển hoàn toàn và thu thập toàn bộ cơ sở dữ liệu, chúng cũng chỉ có trong tay những chuỗi ký tự vô nghĩa vì \textbf{khóa giải mã chưa bao giờ rời khỏi thiết bị của người dùng để đi lên mạng Internet}. Điều này thiết lập nên kiến trúc Zero-Knowledge đúng nghĩa.
+Sự kết hợp này minh chứng cho nguyên tắc "Trust No One". Ngay cả trong kịch bản hệ thống gặp sự cố, khi tin tặc xâm nhập thành công máy chủ Backend và thu thập trái phép cơ sở dữ liệu, thứ mà chúng nhận được chỉ là những cụm ký tự vô nghĩa. \textbf{Khóa giải mã chưa bao giờ vượt qua khỏi ranh giới mạng cục bộ của thiết bị người dùng}. Đó chính là lớp phòng thủ chiều sâu mà thiết kế Zero-Knowledge mang lại.
