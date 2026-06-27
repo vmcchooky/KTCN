@@ -20,7 +20,7 @@ Sự khác biệt cốt lõi nằm ở việc phân lập thẩm quyền. Trong 
 \subsection{Cơ chế bảo vệ bằng URL Fragment}
 Một trong những thách thức cốt lõi của Client-Side Encryption không nằm ở thuật toán mã hóa, mà là bài toán phân phối khóa (Key Distribution). Làm thế nào để luân chuyển chìa khóa từ người gửi đến người nhận mà không bị máy chủ trung gian thu thập trái phép? \textit{Secret Letter} giải quyết bài toán này bằng cách khai thác một đặc tính của giao thức web: \textbf{URL Fragment} (phần chuỗi ký tự nối sau ký hiệu \texttt{\#}).
 
-Theo đặc tả HTTP được quy định bởi W3C và IETF, trình duyệt web luôn có cơ chế chủ động loại bỏ phần Fragment trước khi đóng gói các HTTP Request gửi ra ngoài. Đoạn văn bản đứng sau dấu \texttt{\#} chỉ được lưu giữ trong không gian bộ nhớ cục bộ (local memory) của trình duyệt, phục vụ chủ yếu cho mục đích định tuyến giao diện Frontend.
+Theo đặc tả URI (RFC 3986), trình duyệt web luôn có cơ chế tách bỏ phần Fragment trước khi đóng gói các HTTP Request gửi ra ngoài. Đoạn văn bản đứng sau dấu \texttt{\#} chỉ được lưu giữ trong không gian bộ nhớ cục bộ (local memory) của trình duyệt, phục vụ chủ yếu cho mục đích định tuyến giao diện Frontend.
 
 Luồng thực thi trong dự án được tổ chức như sau:
 \begin{enumerate}
