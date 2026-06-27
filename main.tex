@@ -376,9 +376,11 @@ Deployment results show that Secret Letter not only meets strict information sec
 \chapter*{KẾT LUẬN}
 \addcontentsline{toc}{chapter}{KẾT LUẬN}
 
-Dự án Secret Letter đã đạt được mục tiêu xây dựng một ứng dụng chia sẻ bí mật an toàn với kiến trúc Zero-Knowledge và mã hóa đầu-cuối tại trình duyệt (Client-side Encryption). Hệ thống đáp ứng tốt các yêu cầu khắt khe về bảo mật, hiệu năng, và trải nghiệm người dùng.
+Dự án \textit{Secret Letter} đã hiện thực hóa một hệ thống truyền tải thông điệp nhạy cảm dựa trên nền tảng kiến trúc Zero-Knowledge. Bằng cách dịch chuyển trọng tâm xử lý mã hóa (thông qua Web Crypto API với thuật toán AES-GCM) về phía thiết bị đầu cuối, dự án đã thu hẹp đáng kể đặc quyền giám sát của máy chủ trung gian. Kết hợp với cơ chế tiêu hủy nguyên tử (Atomic Burn-after-reading) được kiểm soát bởi các kịch bản Lua trên hệ thống lưu trữ Redis, giải pháp kỹ thuật này đảm bảo dữ liệu chỉ có thể được trích xuất và giải mã một lần duy nhất bởi thực thể nắm giữ phân đoạn khóa (\texttt{\#key}).
 
-Trong tương lai, dự án có thể mở rộng thêm các tính năng như gửi thông báo qua email, cấp quyền xem linh hoạt hơn, và triển khai các mô hình phân tích hành vi người dùng một cách ẩn danh.
+Dưới góc nhìn kiến trúc phần mềm, mô hình trên phản ánh sự đánh đổi (trade-off) giữa độ an toàn và khả năng phục hồi (Recoverability). Việc máy chủ từ bỏ khả năng can thiệp vào bản rõ (Plaintext) đồng nghĩa với việc hệ thống không thể khôi phục dữ liệu khi người dùng đánh mất khóa mã hóa. Dù vậy, trước rủi ro rò rỉ dữ liệu (Data Breach) tại các điểm lưu trú tập trung, quyết định thiết kế này thiết lập một ranh giới bảo mật bằng kỹ thuật mật mã học thay vì chỉ dựa vào các chính sách cam kết quyền riêng tư (Privacy Policy).
+
+Định hướng phát triển tiếp theo của dự án tập trung vào việc nghiên cứu áp dụng chứng minh không tiết lộ thông tin (Zero-Knowledge Proofs - ZKP) để xác thực danh tính người nhận mà không yêu cầu cung cấp thông tin cá nhân. Bên cạnh đó, việc đóng gói luồng xử lý mật mã tại Frontend thành các mô-đun WebAssembly (Wasm) là một hướng đi khả thi nhằm gia tăng độ khó đối với các nỗ lực dịch ngược mã nguồn (Reverse Engineering) từ phía kẻ tấn công.
 
 \clearpage
 
