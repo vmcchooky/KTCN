@@ -17,11 +17,11 @@ Luồng dữ liệu này minh họa cách hệ thống thực thi bắt buộc M
 
 Quá trình mã hóa được chuyển dịch hoàn toàn về phía thiết bị của người dùng (Client-Side), thay vì phụ thuộc vào sự trung thực của máy chủ. Cụ thể, khi người gửi nhập thông điệp, trình duyệt sẽ sử dụng API \texttt{window.crypto.subtle} để tự động khởi tạo một khóa ngẫu nhiên và mã hóa dữ liệu cục bộ. Nhờ đó, thông tin truyền tải qua mạng và lưu trữ tại Redis chỉ là một chuỗi ký tự vô nghĩa (Ciphertext). Hệ thống quản lý cơ sở dữ liệu hoàn toàn "mù" trước nội dung thực sự của bức thư.
 
-Bên cạnh đó, giải pháp chia sẻ khóa mã hóa thông qua cấu trúc URL Fragment (phần sau dấu \texttt{\#}) là một điểm nhấn về mặt bảo mật. Theo đặc tả của giao thức HTTP, trình duyệt sẽ tự động giữ lại đoạn URL Fragment này và không bao giờ đính kèm nó trong các gói tin gửi đến máy chủ. Điều này giúp khóa giải mã chỉ tồn tại trên thiết bị của người gửi và người nhận, hạn chế tối đa rủi ro lộ lọt khóa từ phía máy chủ hoặc thông qua các bản ghi log hệ thống.
+Bên cạnh đó, giải pháp chia sẻ khóa mã hóa thông qua cấu trúc URL Fragment (phần sau dấu \texttt{\#}) là một phương pháp gia tăng bảo mật. Theo chuẩn định dạng URI (RFC 3986), trình duyệt sẽ tự động tách và giữ lại đoạn URL Fragment này, không bao giờ đính kèm nó trong các HTTP Request gửi đến máy chủ. Điều này giúp khóa giải mã chỉ tồn tại trên thiết bị của người gửi và người nhận, hạn chế đáng kể rủi ro lộ lọt khóa từ phía máy chủ hoặc thông qua các bản ghi log hệ thống.
 
 \subsection{Luồng Tiêu thụ và Giải mã thông điệp (Reveal \& Consume)}
 
-Đây là luồng dữ liệu khi người nhận bấm vào đường link. Điểm nhấn là việc chặn "Preview Bots" thông qua phiên \texttt{Reveal Session} và cơ chế bốc hơi dữ liệu nguyên tử (Atomic Consumption).
+Đây là luồng dữ liệu khi người nhận bấm vào đường link. Điểm nhấn là việc chặn "Preview Bots" thông qua phiên \texttt{Reveal Session} và cơ chế tiêu hủy dữ liệu mang tính nguyên tử (Atomic Consumption).
 
 \begin{figure}[H]
     \centering

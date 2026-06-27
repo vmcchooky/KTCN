@@ -53,7 +53,7 @@ Dưới đây là sơ đồ luồng người dùng thể hiện rõ chốt chặ
 Dự án duy trì các đường cơ sở bảo mật nghiêm ngặt xuyên suốt các thành phần:
 \begin{itemize}
     \item \textbf{Lưu trữ và Truyền tải (SR-1 \& SR-4):} Hệ thống được thiết kế để máy chủ không lưu giữ khóa giải mã. Toàn bộ giao tiếp thực hiện qua HTTPS kèm theo các tiêu đề HSTS, CSP. Bản mã được bảo vệ thêm một lớp (At-Rest) tại cơ sở dữ liệu.
-    \item \textbf{Kiểm soát dữ liệu đầu vào (SR-5):} Dữ liệu từ Client bị giới hạn (tối đa 15KB). Các thao tác trên Redis được thiết lập thời gian chờ (Timeout 5 giây) nhằm hạn chế rủi ro nghẽn cổ chai.
+    \item \textbf{Kiểm soát dữ liệu đầu vào (SR-5):} Dữ liệu từ Client bị giới hạn (tối đa 15KB). Các thao tác kết nối và xử lý trên Redis được thiết lập thời gian chờ khắt khe (ở mức hàng chục mili-giây) nhằm hạn chế rủi ro treo tiến trình khi hệ thống chịu tải cao.
 \end{itemize}
 
 \subsection{Yêu cầu phi chức năng (Non-Functional Requirements)}
