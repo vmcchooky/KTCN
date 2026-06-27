@@ -31,7 +31,7 @@ Quá trình này tập trung vào các tiêu chuẩn an toàn của ứng dụng
 
 Mặc dù có kiến trúc nhẹ, khả năng chịu tải của hệ thống vẫn cần được định lượng bằng các công cụ chuyên dụng như \textbf{k6} hoặc \textbf{JMeter}:
 \begin{itemize}
-    \item Bắn đồng thời hàng nghìn request tạo thông điệp ảo (Concurrent connecti\-ons) trong một khoảng thời gian ngắn.
+    \item Bắn đồng thời hàng nghìn request tạo thông điệp ảo (Concurrent connections) trong một khoảng thời gian ngắn.
     \item Theo dõi mức độ tiêu thụ RAM của tiến trình Redis và CPU của tiến trình Backend (Go routine overhead).
     \item Dựa trên kết quả benchmark để tinh chỉnh các thông số Rate Limiting cho cấu hình Production.
 \end{itemize}

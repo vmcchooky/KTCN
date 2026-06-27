@@ -9,7 +9,7 @@ Thuật toán AES-GCM (256-bit) được triển khai thông qua Web Crypto API,
 Các bài đo đạc (Benchmark) cho thấy:
 \begin{itemize}
     \item \textbf{Đoạn văn bản ngắn (< 1KB):} Thời gian mã hóa trung bình mất < 2ms, không gây ra hiện tượng khựng (UI stutter) trên giao diện.
-    \item \textbf{Đoạn văn bản dài (100KB - 500KB):} Thời gian xử lý dao động trong khoảng 15ms - 40ms. Theo nghiên cứu về trải nghiệm người dùng (UX), độ trễ dưới 100ms đảm bảo phản hồi tức thì.
+    \item \textbf{Đoạn văn bản dài (100KB - 500KB):} Thời gian mã hóa cốt lõi chỉ mất khoảng 1-2ms, nếu tính cả quá trình chuyển đổi chuỗi và hiển thị giao diện, tổng thời gian dao động dưới 15ms, hoàn toàn đảm bảo phản hồi tức thì.
 \end{itemize}
 
 Nhằm xác minh độc lập, một đoạn mã kịch bản thử nghiệm API \texttt{webcrypto.subtle} đã được tiến hành với các kích thước Payload từ 1KB lên đến 1,000KB (1MB).
@@ -21,7 +21,7 @@ Nhằm xác minh độc lập, một đoạn mã kịch bản thử nghiệm API
     \label{fig:benchmark_crypto}
 \end{figure}
 
-Số liệu (Hình \ref{fig:benchmark_crypto}) minh chứng mã hóa 1MB dữ liệu bằng WebCrypto mất chưa đến 1.1ms, cho thấy mô hình Zero-Knowledge có độ trễ phía client rất thấp.
+Số liệu (Hình \ref{fig:benchmark_crypto}) minh chứng mã hóa thuần túy 1MB dữ liệu mất khoảng 1.1ms, cho thấy mô hình Zero-Knowledge có độ trễ phía client rất thấp.
 
 \subsection{Khả năng chịu tải và độ trễ Backend (Load Testing)}
 
