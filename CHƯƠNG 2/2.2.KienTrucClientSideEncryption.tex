@@ -24,7 +24,7 @@ Theo đặc tả HTTP được quy định bởi W3C và IETF, trình duyệt we
 
 Luồng thực thi trong dự án được tổ chức như sau:
 \begin{enumerate}
-    \item \textbf{Phía gửi:} Một khóa ngẫu nhiên AES-256-GCM sau khi sinh ra sẽ được mã hóa dạng \texttt{Base64Url} và đính kèm vào đuôi đường dẫn (ví dụ: \texttt{https://secret.quorix.io.vn/secret/12345\#Kh0aB1M4t}). Lúc này, chỉ có phần bản mã (ciphertext) mới được đẩy lên Backend và định danh bởi ID \texttt{12345}.
+    \item \textbf{Phía gửi:} Một khóa ngẫu nhiên AES-256-GCM sau khi sinh ra sẽ được mã hóa dạng \texttt{Base64Url} và đính kèm vào đuôi đường dẫn (ví dụ: \texttt{https://secret.quorix.io.vn/secret/12345\#Kh0aB1M4t}). Lúc \-này, chỉ có phần bản mã (ciphertext) mới được đẩy lên Backend và định danh bởi ID \texttt{12345}.
     \item \textbf{Phía nhận:} Khi người nhận nhấp vào liên kết, trình duyệt khởi tạo luồng gọi API để truy vấn bản mã mang ID \texttt{12345}. Ngay khi khối dữ liệu đáp trả về đến máy khách, mã JavaScript nội tại sẽ lập tức trích xuất chìa khóa \texttt{Kh0aB1M4t} đang nằm chờ sẵn trên thanh địa chỉ, từ đó thực thi thao tác giải mã mà không phát sinh thêm bất kỳ giao tiếp mạng nào.
 \end{enumerate}
 

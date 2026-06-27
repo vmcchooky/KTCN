@@ -1,1 +1,66 @@
 \section{Phân tích yêu cầu}
+
+Tài liệu đặc tả (Product Specification) của \textit{Secret Letter} phân hoạch hệ thống thành ba nhóm yêu cầu cốt lõi, đặt trọng tâm vào việc giải quyết bài toán chia sẻ thông tin nhạy cảm một lần duy nhất mà không đòi hỏi sự tin tưởng vào máy chủ lưu trữ (Zero-Trust Model).
+
+\subsection{Yêu cầu chức năng (Functional Requirements)}
+Hệ thống xoay quanh một vòng đời dữ liệu khép kín, được định hình bởi các nghiệp vụ chính:
+
+\begin{itemize}
+    \item \textbf{Mã hóa và Tạo liên kết (FR-1 \& FR-2):} Người gửi soạn thảo văn bản (tối đa 10KB). Trình duyệt tiến hành mã hóa bằng Web Crypto API (AES-256-GCM) trước khi truyền tải, trả về liên kết chia sẻ dạng \texttt{URL\#FragmentKey}.
+    \item \textbf{Phòng vệ trước Bot tự động (FR-3 - Preview Bot Protection):} Để tránh việc các Bot xem trước (như Crawler của Zalo, Telegram) vô tình tiêu thụ thông điệp, trình duyệt không tự động giải mã khi tải trang. Việc giải mã yêu cầu tương tác chủ đích (click chuột) từ người dùng.
+    \item \textbf{Tiêu thụ Nguyên tử (FR-4 - Atomic Consumption):} Cơ chế đảm bảo thông điệp chỉ được trích xuất thành công một lần. Các yêu cầu truy xuất tiếp theo sẽ bị từ chối.
+    \item \textbf{Vòng đời tự động (FR-5 - TTL-Based Expiration):} Hệ thống hỗ trợ cơ chế dọn dẹp theo thời gian (1 giờ, 24 giờ, 7 ngày) qua hàm EXPIRE của Redis.
+    \item \textbf{Trạng thái minh bạch (FR-6) và Giới hạn (FR-7):} Người nhận được thông báo rõ ràng về tình trạng của liên kết (\textit{Đã bị tiêu thụ}, \textit{Đã hết hạn}). Hệ thống áp dụng hạn mức kết nối (ví dụ: 120 yêu cầu tạo/giờ/IP) nhằm giảm thiểu lạm dụng.
+\end{itemize}
+
+Dưới đây là sơ đồ luồng người dùng thể hiện rõ chốt chặn "Tương tác chủ đích" để phòng chống Bot:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\sffamily\small,
+    >={Stealth[round, scale=1.1]},
+    actor/.style={draw=orange!40, fill=orange!5, rounded corners=6pt, inner sep=10pt, align=center, font=\bfseries, minimum width=2.5cm},
+    action/.style={draw=blue!30, fill=blue!5, rounded corners=6pt, inner sep=8pt, align=center, minimum height=0.8cm, minimum width=3.5cm},
+    data/.style={draw=cyan!40, fill=cyan!3, rounded corners=6pt, inner sep=8pt, align=center, minimum height=0.8cm, minimum width=3.5cm, dashed},
+    arrow/.style={->, thick, gray!80, rounded corners=4pt}
+]
+
+% Nodes
+\node[actor] (sender) at (0, 6) {Người gửi};
+\node[action] (create) at (0, 4) {Soạn \& Mã hóa};
+\node[data] (link) at (0, 2) {URL chứa Khóa Fragment};
+
+\node[actor] (receiver) at (6, 6) {Người nhận};
+\node[action] (access) at (6, 4) {Truy cập URL\\(Tải giao diện tĩnh)};
+\node[action] (click) at (6, 2) {Click "Reveal Secret"\\(Chặn Preview Bots)};
+\node[action] (read) at (6, 0) {Giải mã \& Tự hủy};
+
+% Arrows
+\draw[arrow] (sender) -- (create);
+\draw[arrow] (create) -- (link);
+\draw[arrow, out=0, in=180] (link.east) to node[midway, above, font=\scriptsize\color{gray!80!black}] {Gửi liên kết} (access.west);
+\draw[arrow] (receiver) -- (access);
+\draw[arrow] (access) -- (click);
+\draw[arrow] (click) -- (read);
+
+\end{tikzpicture}
+\caption{Luồng tương tác cốt lõi của người dùng tích hợp cơ chế chống Bot (User Flow)}
+\label{fig:req_user_flow}
+\end{figure}
+
+\subsection{Yêu cầu an toàn thông tin (Security Requirements)}
+Dự án duy trì các đường cơ sở bảo mật nghiêm ngặt xuyên suốt các thành phần:
+\begin{itemize}
+    \item \textbf{Lưu trữ và Truyền tải (SR-1 \& SR-4):} Hệ thống được thiết kế để máy chủ không lưu giữ khóa giải mã. Toàn bộ giao tiếp thực hiện qua HTTPS kèm theo các tiêu đề HSTS, CSP. Bản mã được bảo vệ thêm một lớp (At-Rest) tại cơ sở dữ liệu.
+    \item \textbf{Kiểm soát dữ liệu đầu vào (SR-5):} Dữ liệu từ Client bị giới hạn (tối đa 15KB). Các thao tác trên Redis được thiết lập thời gian chờ (Timeout 5 giây) nhằm hạn chế rủi ro nghẽn cổ chai.
+\end{itemize}
+
+\subsection{Yêu cầu phi chức năng (Non-Functional Requirements)}
+Nhằm đảm bảo dự án có khả năng duy trì, vận hành và nâng cấp trong tương lai, hệ thống tuân thủ 4 tiêu chuẩn cốt lõi:
+\begin{itemize}
+    \item \textbf{Độ trễ (NFR-1 - Latency):} Các giao diện lập trình ứng dụng (API) tạo và truy xuất được thiết kế để phản hồi ở mức tối ưu. Thao tác mã hóa và giải mã cần hoạt động hiệu quả trên đa số các thiết bị di động.
+    \item \textbf{Độ tin cậy (NFR-2 - Reliability):} Cơ chế tự hủy (reveal) cần duy trì tính chính xác (đúng một lần) dưới áp lực truy cập đồng thời. Việc khởi động lại dịch vụ không làm ảnh hưởng các liên kết đang hiệu lực.
+    \item \textbf{Tính tối giản (NFR-3 - Simplicity):} Phiên bản MVP thiết kế gọn nhẹ để có thể chạy cục bộ với tổ hợp \texttt{Frontend + Go Services + Redis}. Mỗi dịch vụ đảm nhiệm một trách nhiệm cụ thể.
+    \item \textbf{Khả năng vận hành (NFR-4 - Operability):} Môi trường phát triển cục bộ hoạt động trơn tru qua \texttt{Docker Compose}. Khi triển khai, kiến trúc hỗ trợ khả năng mở rộng ngang (horizontal scaling) đối với các dịch vụ phi trạng thái.
+\end{itemize}

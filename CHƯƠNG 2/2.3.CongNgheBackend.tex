@@ -1,1 +1,22 @@
 \section{Công nghệ Backend}
+
+Kiến trúc Backend của \textit{Secret Letter} được thiết kế với mục tiêu tối giản, an toàn và tối ưu hóa hiệu suất xử lý luồng. Hệ thống từ bỏ các framework cồng kềnh để tập trung vào một tập lệnh biên dịch duy nhất, kết hợp với cơ sở dữ liệu xử lý trên bộ nhớ (in-memory) nhằm đáp ứng yêu cầu độ trễ thấp.
+
+\subsection{Ngôn ngữ lập trình Go}
+Ngôn ngữ Go (Golang) được lựa chọn làm nền tảng phát triển dịch vụ máy chủ nhờ đặc tính biên dịch tĩnh và khả năng quản lý đồng thời (concurrency) xuất sắc. 
+
+Khác với các ngôn ngữ thông dịch đòi hỏi môi trường thực thi phức tạp, Go cho phép đóng gói toàn bộ mã nguồn và thư viện phụ thuộc vào một tệp thực thi duy nhất (single binary). Quyết định kỹ thuật này không chỉ tinh gọn quá trình triển khai mà còn thu hẹp đáng kể bề mặt tấn công sinh ra từ các lỗi chuỗi cung ứng (supply chain vulnerabilities). Bên cạnh đó, việc khai thác trực tiếp thư viện chuẩn \texttt{net/http} giúp hệ thống duy trì khả năng tiếp nhận và xử lý hàng nghìn kết nối đồng thời mà không bị kìm hãm bởi chi phí phân bổ bộ nhớ (memory allocation overhead) của các middleware dư thừa.
+
+\subsection{Lưu trữ và Thao tác nguyên tử với Redis}
+Tính năng cốt lõi của hệ thống là đảm bảo một thông điệp chỉ được phép hiển thị đúng một lần duy nhất (read-once). Đặc tả này đặt ra một bài toán kỹ thuật lớn về tương tranh (race condition): nếu kẻ tấn công gửi cùng lúc nhiều yêu cầu truy xuất cho một mã định danh, máy chủ có thể vô tình phản hồi bản mã cho nhiều hơn một đối tượng trước khi tiến trình xóa kịp thực thi.
+
+Để giải quyết rủi ro này, hệ thống tích hợp Redis làm cơ sở dữ liệu chính và áp dụng kỹ thuật thao tác nguyên tử thông qua \textbf{Lua Script}. Thay vì tách rời các lệnh đọc và xóa, kịch bản Lua (như \texttt{claimOpenSecretScript}) gộp nhóm toàn bộ thao tác thành một khối thống nhất. Khi chuỗi lệnh này được đưa vào bộ máy thực thi luồng đơn (single-threaded) của Redis, không có bất kỳ lệnh nào khác được phép xen ngang. Nhờ vậy, ngay cả trong kịch bản hàng trăm yêu cầu ập đến cùng lúc, chỉ có yêu cầu đầu tiên trích xuất thành công, trong khi phần còn lại sẽ lập tức bị từ chối do trạng thái thông điệp đã thay đổi.
+
+\subsection{Cơ chế bảo vệ biên và Mã hóa tại chỗ (At-Rest Encryption)}
+Mặc dù dữ liệu đã được áp dụng Client-Side Encryption trước khi rời khỏi thiết bị người dùng, Backend vẫn thiết lập một loạt cơ chế kiểm soát nhằm bảo vệ tài nguyên máy chủ trước các luồng giao thông bất thường.
+
+\begin{itemize}
+    \item \textbf{Mã hóa tại chỗ (At-Rest):} Dù bản mã nhận được từ máy khách vốn đã không thể đọc lén, hệ thống tiếp tục áp dụng thêm một lớp mã hóa máy chủ bằng thuật toán AES-256-GCM trước khi ghi vào bộ nhớ Redis. Khóa nội bộ này được quản lý độc lập thông qua biến môi trường. Lớp bảo vệ này đóng vai trò giới hạn phạm vi rò rỉ trong trường hợp bản thân dịch vụ Redis bị xâm nhập trái phép.
+    \item \textbf{Giới hạn tải trọng (Payload Restriction):} Dung lượng của mọi yêu cầu HTTP gửi đến bộ xử lý bị ràng buộc chặt chẽ ở mức tối đa 15KB bằng hàm \texttt{http.MaxBytesReader}. Cơ chế này nhằm chủ động giảm thiểu rủi ro cạn kiệt bộ nhớ máy chủ (OOM) hoặc tấn công làm ngập lụt tài nguyên thông qua việc bơm dữ liệu kích thước lớn.
+    \item \textbf{Kiểm soát lưu lượng (Rate Limiting):} Hệ thống duy trì một bộ định mức luồng (rate limiter) vận hành trực tiếp trên Redis. Bằng cách trích xuất an toàn địa chỉ IP thực của thiết bị đầu cuối qua tiêu đề \texttt{X-Forwarded\--For} từ các dải proxy được ủy thác, máy chủ thiết lập hạn mức kết nối riêng biệt cho từng loại giao dịch (tạo mới, truy xuất, kiểm tra trạng thái), từ đó hạn chế đáng kể khả năng dò quét (brute-force) mã thông điệp.
+\end{itemize}

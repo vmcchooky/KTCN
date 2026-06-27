@@ -1,1 +1,50 @@
 \section{Thiết kế luồng dữ liệu}
+
+Dự án \textit{Secret Letter} áp dụng triết lý bảo mật \textbf{Zero-Knowledge} (Không tri thức), do đó luồng dữ liệu (Data Flow) khác biệt hoàn toàn so với các ứng dụng nhắn tin truyền thống. Đặc trưng cốt lõi của thiết kế này là sự tách bạch giữa "Bản mã" (Ciphertext) và "Khóa giải mã" (Decryption Key): Máy chủ chỉ đóng vai trò lưu trữ bản mã, trong khi Khóa được ngụy trang vào URL dạng Fragment Hash (\texttt{\#key=...}) để luân chuyển qua các kênh trung gian. 
+
+Dưới đây là 3 luồng giao tiếp tuần tự (Sequence Diagram) quan trọng nhất định hình toàn bộ vòng đời của một thông điệp bí mật.
+
+\subsection{Luồng Tạo và Mã hóa thông điệp (Create Secret)}
+
+Luồng dữ liệu này minh họa cách hệ thống thực thi bắt buộc Mã hóa phía Máy khách (Client-Side Encryption) trước khi dữ liệu rời khỏi trình duyệt.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{img/seq_create.png}
+    \caption{Quá trình tạo và mã hóa thông điệp tại máy khách}
+    \label{fig:seq_create}
+\end{figure}
+
+Quá trình mã hóa được chuyển dịch hoàn toàn về phía thiết bị của người dùng (Client-Side), thay vì phụ thuộc vào sự trung thực của máy chủ. Cụ thể, khi người gửi nhập thông điệp, trình duyệt sẽ sử dụng API \texttt{window.crypto.subtle} để tự động khởi tạo một khóa ngẫu nhiên và mã hóa dữ liệu cục bộ. Nhờ đó, thông tin truyền tải qua mạng và lưu trữ tại Redis chỉ là một chuỗi ký tự vô nghĩa (Ciphertext). Hệ thống quản lý cơ sở dữ liệu hoàn toàn "mù" trước nội dung thực sự của bức thư.
+
+Bên cạnh đó, giải pháp chia sẻ khóa mã hóa thông qua cấu trúc URL Fragment (phần sau dấu \texttt{\#}) là một điểm nhấn về mặt bảo mật. Theo đặc tả của giao thức HTTP, trình duyệt sẽ tự động giữ lại đoạn URL Fragment này và không bao giờ đính kèm nó trong các gói tin gửi đến máy chủ. Điều này giúp khóa giải mã chỉ tồn tại trên thiết bị của người gửi và người nhận, hạn chế tối đa rủi ro lộ lọt khóa từ phía máy chủ hoặc thông qua các bản ghi log hệ thống.
+
+\subsection{Luồng Tiêu thụ và Giải mã thông điệp (Reveal \& Consume)}
+
+Đây là luồng dữ liệu khi người nhận bấm vào đường link. Điểm nhấn là việc chặn "Preview Bots" thông qua phiên \texttt{Reveal Session} và cơ chế bốc hơi dữ liệu nguyên tử (Atomic Consumption).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{img/seq_consume.png}
+    \caption{Quá trình xác thực phiên và tiêu thụ thông điệp (One-time Reveal)}
+    \label{fig:seq_consume}
+\end{figure}
+
+Để giải quyết bài toán các liên kết thường xuyên bị các trình quét tự động (Preview Bots của Zalo, Facebook, Slack) truy cập và vô tình làm mất thông điệp, hệ thống triển khai một cơ chế phòng vệ có tên gọi là \textit{Reveal Gate}. Khi người nhận nhấp vào liên kết, Frontend sẽ yêu cầu Backend khởi tạo một phiên giao dịch tạm thời (Session) thay vì tải thẳng nội dung. Bức thư chỉ thực sự được truy xuất khi có một tương tác vật lý từ người dùng (nhấp vào nút "Click to Reveal"), giúp phân biệt rõ ràng giữa thao tác của con người và máy móc.
+
+Ở cốt lõi của quy trình truy xuất là cơ chế đảm bảo tính duy nhất của bức thư (Burn-after-reading). Thay vì thực hiện hai lệnh rời rạc để đọc (GET) và xóa (DEL) dữ liệu, Backend gói gọn chúng vào một kịch bản \texttt{Lua} duy nhất (\texttt{EVAL}). Nhờ đặc tính xử lý đơn luồng của Redis, khối kịch bản này được thực thi nguyên tử (Atomic). Do vậy, thao tác đọc thông điệp và xóa sổ khỏi không gian lưu trữ được thực hiện đồng thời, giúp giảm thiểu các kẽ hở thời gian có thể dẫn đến rủi ro can thiệp.
+
+\subsection{Luồng Xử lý Xung đột và Hết hạn (Error / Race Condition)}
+
+Mục đích của sơ đồ này là minh chứng sự cứng cáp của hệ thống khi phải đối mặt với trạng thái Tương tranh (Race Condition) - hiện tượng hai người nhận (ví dụ, do rò rỉ link) cùng lúc bấm nút "Mở thư".
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{img/seq_race.png}
+    \caption{Xử lý tương tranh (Race Condition) khi 2 người cùng truy cập}
+    \label{fig:seq_race}
+\end{figure}
+
+Trong thực tế vận hành, tình trạng Tương tranh (Race Condition) có thể xảy ra khi một liên kết bị rò rỉ và có nhiều người cùng truy cập vào một thời điểm. Thiết kế kiến trúc đã chủ động đối phó với kịch bản này bằng cách giao phó hoàn toàn trách nhiệm phân xử cho cơ chế xử lý tuần tự nghiêm ngặt của Redis. 
+
+Ngay cả khi hai yêu cầu truy xuất (R1 và R2) cập bến Backend cùng một lúc, cấu trúc đơn luồng của Redis đảm bảo rằng chỉ có yêu cầu đầu tiên lọt vào hàng đợi được xử lý trọn vẹn. Lệnh truy xuất từ R1 sẽ lấy đi bản mã và tiêu hủy nó ngay lập tức. Kết quả là, khi yêu cầu của R2 được thực thi ngay sau đó, cơ sở dữ liệu chỉ còn lại trạng thái trống (\texttt{nil}). Từ đó, Backend dễ dàng nhận diện và kích hoạt bộ mã lỗi \texttt{410 Gone} (Tài nguyên đã biến mất), đồng thời thông báo rõ ràng cho người thứ hai rằng thông điệp đã bị tiêu thụ. Cách tiếp cận này ngăn chặn hiệu quả hiện tượng cấp phát trùng lặp dữ liệu, đảm bảo nguyên tắc bảo mật cốt lõi của dự án.

@@ -1,1 +1,18 @@
 \section{Công nghệ Frontend}
+
+Giao diện người dùng của \textit{Secret Letter} được xây dựng dựa trên các công nghệ web hiện đại, ưu tiên tốc độ phản hồi và tính bảo mật cao khi thao tác với dữ liệu nhạy cảm.
+
+\subsection{Thư viện React và Công cụ biên dịch Vite}
+Hệ thống sử dụng thư viện React làm cốt lõi để kiến tạo giao diện Frontend. Điểm mạnh của React nằm ở kiến trúc Component, cho phép phân rã các khu vực chức năng (như biểu mẫu nhập liệu, hộp thoại hiển thị khóa, màn hình kết quả) thành các thành phần độc lập và có khả năng tái sử dụng. Cơ chế quản lý trạng thái (state management) nội tại giúp giao diện phản hồi tức thời với các tương tác của người dùng mà không đòi hỏi thao tác tải lại trang (page reload).
+
+Song song đó, dự án tích hợp Vite làm công cụ biên dịch (build tool) chính. Bằng cách khai thác cơ chế ES Modules tiêu chuẩn của trình duyệt, Vite tăng tốc đáng kể quá trình phát triển thông qua tính năng Hot Module Replacement (HMR). Ở môi trường thực tế (production), mã nguồn được Vite đóng gói thành các tệp tĩnh (static assets) với kích thước tối ưu, giúp giảm thiểu độ trễ tải trang ngay cả khi người dùng truy cập từ các mạng băng thông thấp.
+
+\subsection{Xử lý Mật mã với Web Cryptography API}
+Theo kiến trúc mã hóa máy khách (Client-Side Encryption), toàn bộ quy trình biến đổi bản rõ thành bản mã phải được hoàn tất trên trình duyệt. Nếu phụ thuộc vào các thư viện mật mã viết thuần bằng JavaScript (chẳng hạn như CryptoJS), hệ thống sẽ đối mặt với sự suy giảm hiệu năng kết xuất và tiềm ẩn rủi ro bảo mật từ các chuỗi cung ứng (supply chain attack) do sử dụng gói phần mềm bên thứ ba.
+
+Để giải quyết bài toán này, hệ thống giao phó hoàn toàn trách nhiệm tính toán cho \textbf{Web Cryptography API} (\textcite{w3c-webcrypto-2017}). Đây là một tiêu chuẩn của W3C được tích hợp sâu vào bộ lõi của mọi trình duyệt web hiện đại. Việc gọi hàm mã hóa thuật toán AES-GCM qua API này cung cấp đặc quyền truy cập trực tiếp vào các tập lệnh mật mã cấp thấp (low-level) do hệ điều hành quản lý. Thiết kế này không chỉ gia tăng tốc độ mã hóa thông qua khả năng tăng tốc phần cứng, mà còn giới hạn rủi ro lộ lọt bộ nhớ so với việc duy trì dữ liệu khóa trực tiếp trong không gian JavaScript.
+
+\subsection{Thiết kế UI/UX và Trải nghiệm điện ảnh (Cinematic Experience)}
+Khác với các ứng dụng tiện ích thông thường, \textit{Secret Letter} hướng tới một trải nghiệm thị giác mang tính điện ảnh (Dark Cinematic). Hệ thống chủ động từ bỏ các bộ khung CSS cồng kềnh để làm chủ hoàn toàn giao diện thông qua \textbf{Vanilla CSS} và CSS Variables. Quyết định này giúp kiến tạo một bảng màu phối hợp (color scheme) đặc trưng như xanh đen sâu, vàng kim và phông chữ cổ điển có chân (\textit{Playfair Display}), mô phỏng lại cảm giác đọc một bức thư bí mật chân thực.
+
+Điểm nhấn kỹ thuật nằm ở việc ứng dụng thư viện \textbf{GSAP} (GreenSock Animation Platform) để điều hướng các chuyển động. Thay vì phụ thuộc vào các hiệu ứng chuyển tiếp (transition) đơn giản của CSS dễ gây suy giảm khung hình trên thiết bị cấu hình thấp, GSAP cho phép đồng bộ hóa các mốc thời gian (timelines) phức tạp ở hiệu năng cao. Cơ chế này mang lại các hiệu ứng mở thư và xuất hiện mượt mà, củng cố tính nhập vai (immersive) của người dùng đồng thời hạn chế tối đa chi phí tiêu hao tài nguyên kết xuất (rendering overhead).

@@ -1,1 +1,39 @@
 \section{Triển khai Backend}
+
+Phân hệ máy chủ (Backend) của \textit{Secret Letter} được thiết kế với hai tiêu chí trọng tâm: Tốc độ phản hồi cực nhanh (Low Latency) và độ tin cậy cao trong quá trình tiêu hủy dữ liệu.
+
+\subsection{Lựa chọn công nghệ cốt lõi}
+
+\begin{itemize}
+    \item \textbf{Ngôn ngữ Golang:} Được lựa chọn nhờ khả năng xử lý đồng thời (Concurrency) ưu việt thông qua Goroutines, kết hợp với lợi thế biên dịch ra tệp thực thi độc lập (Standalone Binary). Điều này giúp tối giản hóa quá trình triển khai nền tảng đám mây, hạn chế tối đa sự phụ thuộc vào các môi trường thực thi cồng kềnh (như JVM hay Node.js).
+    \item \textbf{Cơ sở dữ liệu Redis:} Thay vì sử dụng các cơ sở dữ liệu quan hệ (RDBMS) lưu trữ trên ổ cứng vật lý, Redis (In-Memory Database) được ưu tiên để quản lý thông điệp. Với cơ chế ghi nhận bộ nhớ tạm và tự động thu hồi dựa trên thời gian sống (TTL - Time to Live) tích hợp sẵn, Redis là mảnh ghép cực kỳ phù hợp cho cấu trúc đọc-một-lần (Burn-after-reading).
+\end{itemize}
+
+\subsection{Kiểm soát tính nguyên tử (Atomic Operations)}
+
+Một trong những bài toán bảo mật phức tạp tại Backend là rủi ro tương tranh (Race Condition), nơi nhiều luồng kết nối mạng đồng loạt gửi yêu cầu mở cùng một bức thư. Nếu không được rào chắn, dữ liệu có thể vô tình bị trích xuất làm nhiều bản.
+
+Để giải quyết, tầng nghiệp vụ lưu trữ (thuộc \texttt{internal/\-secret/\-redis\_service.go}) đã áp dụng các kịch bản \textbf{Lua Script} thực thi trực tiếp trên Redis Engine. Lợi dụng bản chất tiến trình đơn luồng (Single-threaded) của hệ thống Redis, toàn bộ chuỗi thao tác: Kiểm tra sự tồn tại $\rightarrow$ Trích xuất bản mã $\rightarrow$ Xóa sổ vật lý (DEL) được thi hành dưới dạng một giao dịch nguyên tử (Atomic Transaction) không thể chia cắt. Cơ chế này đóng vai trò quyết định trong việc ngăn ngừa hiệu quả mọi nỗ lực lợi dụng độ trễ mạng để tải xuống bức thư lần thứ hai.
+
+\subsection{Hệ thống giới hạn lưu lượng (Rate Limiting)}
+
+Nhằm bảo vệ tài nguyên máy chủ trước các nguy cơ tấn công làm cạn kiệt dịch vụ (DoS) hoặc bơm dữ liệu rác làm tràn bộ nhớ, cơ chế Rate Limiting độc lập đã được xây dựng chuyên biệt tại phân vùng \texttt{internal/\-ratelimit}.
+
+Thuật toán đếm cửa sổ cố định (Fixed Window Counter) cũng được triển khai qua Lua Script nhằm đạt tốc độ đánh giá nhanh nhất. Hệ thống thiết lập các ranh giới khắt khe để duy trì tính ổn định:
+\begin{itemize}
+    \item Tối đa \textbf{120 lần} khởi tạo thư (\texttt{Create}) / giờ / IP.
+    \item Tối đa \textbf{240 lần} mở thư (\texttt{Consume}) / giờ / IP.
+\end{itemize}
+
+Nhằm nâng cao tính ẩn danh, hệ thống chỉ lưu trữ mã băm (Hash) theo chuẩn SHA-256 của địa chỉ IP để làm khóa đếm giới hạn (Rate Limit Key) trong Redis, đảm bảo hệ thống không lưu giữ vết tích mạng thực tế của người dùng.
+
+\subsection{Phân lớp kiến trúc và Xử lý lỗi}
+
+Kiến trúc phần mềm được phân rã thành ba tầng trừu tượng chính:
+\begin{enumerate}
+    \item \textbf{Tầng Mạng (\texttt{httpapi}):} Quản lý việc tiếp nhận yêu cầu, thiết lập các lớp lá chắn bảo mật biên (CORS, Security Headers, Max Payload Size) và chuẩn hóa dữ liệu đầu vào.
+    \item \textbf{Tầng Nghiệp vụ (\texttt{secret}):} Kiểm soát vòng đời cấp phát phiên giao dịch (Reveal Session) và đánh giá logic mã hóa (kiểm tra tính hợp lệ của chuẩn mã hóa, Nonce, TTL).
+    \item \textbf{Tầng Dữ liệu (\texttt{store}):} Phụ trách kênh kết nối TCP tốc độ cao với máy chủ Redis.
+\end{enumerate}
+
+Bất kỳ sự cố nào phát sinh xuyên suốt cấu trúc ba tầng này đều được hệ thống quy hoạch về chuẩn lỗi nội bộ \texttt{AppError}. Cách tiếp cận này giúp Backend không bao giờ vô tình làm rò rỉ mã lỗi hệ thống (như Stacktrace hay Lỗi thư viện) ra bên ngoài, đồng thời đảm bảo Frontend luôn nhận được mã định danh sự cố (Error Codes) có ngữ nghĩa thống nhất.

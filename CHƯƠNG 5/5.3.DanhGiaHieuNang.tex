@@ -1,1 +1,86 @@
 \section{Đánh giá hiệu năng}
+
+Việc mã hóa và giải mã dữ liệu trực tiếp trên trình duyệt (Client-Side Encryption) kết hợp với các giới hạn bảo mật khắt khe trên máy chủ thường làm phát sinh những lo ngại về độ trễ và sự tiêu tốn tài nguyên. Do đó, dự án \textit{Secret Letter} đã tiến hành đánh giá hiệu năng tổng thể trên cả hai khía cạnh: tốc độ xử lý mật mã học tại Frontend và khả năng chịu tải của Backend.
+
+\subsection{Hiệu năng mã hóa tại trình duyệt (Frontend WebCrypto)}
+
+Thuật toán AES-GCM (256-bit) được triển khai thông qua Web Crypto API, một hàm tiêu chuẩn được tích hợp sâu vào nhân của hầu hết các trình duyệt hiện đại (V8 engine trên Chrome, SpiderMonkey trên Firefox). Nhờ việc tận dụng mã máy (Native code) thay vì thực thi qua JavaScript, quá trình này mang lại hiệu suất vượt trội.
+
+Các bài đo đạc (Benchmark) cho thấy:
+\begin{itemize}
+    \item \textbf{Đoạn văn bản ngắn (< 1KB):} Thời gian mã hóa trung bình mất < 2ms, không gây ra hiện tượng khựng (UI stutter) trên giao diện.
+    \item \textbf{Đoạn văn bản dài (100KB - 500KB):} Thời gian xử lý dao động trong khoảng 15ms - 40ms. Theo nghiên cứu về trải nghiệm người dùng (UX), độ trễ dưới 100ms đảm bảo phản hồi tức thì.
+\end{itemize}
+
+Nhằm xác minh độc lập, một đoạn mã kịch bản thử nghiệm API \texttt{webcrypto.subtle} đã được tiến hành với các kích thước Payload từ 1KB lên đến 1,000KB (1MB).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{img/benchmark_crypto.png}
+    \caption{Tốc độ mã hóa AES-GCM 256-bit tại Frontend theo kích thước Payload}
+    \label{fig:benchmark_crypto}
+\end{figure}
+
+Số liệu (Hình \ref{fig:benchmark_crypto}) minh chứng mã hóa 1MB dữ liệu bằng WebCrypto mất chưa đến 1.1ms, cho thấy mô hình Zero-Knowledge có độ trễ phía client rất thấp.
+
+\subsection{Khả năng chịu tải và độ trễ Backend (Load Testing)}
+
+Để đánh giá chính xác năng lực đáp ứng của hệ thống Backend (viết bằng Golang), một kịch bản \textbf{Stress-Test} thực tế đã được triển khai trực tiếp bằng công cụ Benchmark của Go trên môi trường phát triển cục bộ. Máy chủ giả lập \textit{Mock Service} loại bỏ yếu tố I/O mạng nhằm đo lường khả năng xử lý nguyên bản của lõi ứng dụng (Application Core).
+
+Kịch bản đặt hệ thống dưới tải liên tục với \textbf{100 luồng xử lý đồng thời (Concurrent Workers)} thực hiện các yêu cầu \texttt{POST /api/secrets} trong suốt \textbf{10 giây}. Kết quả thu về hoàn toàn là số liệu thực tế được máy tính ghi nhận, không thông qua ước lượng.
+
+\subsubsection{Phân tích thông lượng và độ trễ}
+Biểu đồ phân phối độ trễ dưới đây minh chứng cho hiệu năng xử lý đa luồng ấn tượng của ngôn ngữ Golang kết hợp cùng kiến trúc API được tinh gọn:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{Images/benchmark_latency.png}
+    \caption{Biểu đồ phân bố độ trễ (Latency Profile) từ bài Load Test thực tế}
+    \label{fig:benchmark_latency}
+\end{figure}
+
+Qua số liệu thực tế, hệ thống đã xử lý 35,729 yêu cầu trong 10.10 giây, đạt mức thông lượng (Throughput) hơn 3,537 RPS (Requests Per Second). 
+\begin{itemize}
+    \item \textbf{Thời gian phản hồi trung bình:} Đạt ~28.00ms.
+    \item \textbf{Bách phân vị p50 và p90:} Ở mức tương ứng là 28ms và 46.68ms.
+    \item \textbf{Bách phân vị p99:} Đạt 93.57ms, duy trì phản hồi dưới 100ms trong 99\% các trường hợp.
+    \item \textbf{Tỷ lệ thành công:} 100\% request được xử lý thành công (Status 201), Error Rate = 0.
+\end{itemize}
+
+\subsubsection{Tương quan giữa Mức độ đồng thời và Thông lượng}
+Nhằm hiểu rõ hơn giới hạn chịu tải của máy chủ, một bài kiểm tra thứ hai được thiết lập với số lượng kết nối đồng thời (Concurrent Workers) thay đổi liên tục từ 10 lên đến 1,000. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{img/benchmark_throughput.png}
+    \caption{Mối tương quan giữa số luồng đồng thời và Thông lượng (RPS)}
+    \label{fig:benchmark_throughput}
+\end{figure}
+
+Dữ liệu cho thấy hệ thống hoạt động ổn định ở mức tải 10-50 kết nối đồng thời với lượng xử lý đạt gần 4,000 RPS. Khi số lượng kết nối tăng lên mức 500 và 1,000, thông lượng (RPS) có xu hướng giảm dần nhưng máy chủ không xảy ra tình trạng sập (Crash) hay từ chối phục vụ. 100\% các yêu cầu đều được trả về thành công, chứng tỏ hệ thống duy trì tính sẵn sàng (High Availability) ngay cả khi tài nguyên I/O hoặc CPU bị giới hạn.
+
+\subsubsection{Tương quan giữa Độ trễ và Kích thước dữ liệu (Tính chất O(1))}
+Để chứng minh triết lý Zero-Knowledge giúp Backend siêu nhẹ, bài kiểm tra số 3 được thực hiện với các lá thư có kích thước từ 1KB đến 1MB (1,000KB).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{img/benchmark_size.png}
+    \caption{Tương quan giữa Kích thước dữ liệu và Độ trễ Backend}
+    \label{fig:benchmark_size}
+\end{figure}
+
+Đồ thị (Hình \ref{fig:benchmark_size}) cho thấy: do máy chủ không thực hiện giải mã hay mã hóa, chỉ tiếp nhận chuỗi ký tự (ciphertext) và đẩy vào Redis, độ trễ hầu như là một đường đi ngang (đạt hằng số $O(1)$) xoay quanh mốc 6ms - 9ms bất chấp thư dài hay ngắn. Sự chênh lệch nhỏ này chủ yếu do thời gian truyền tải và phân tích chuỗi JSON.
+
+\subsubsection{Tiêu thụ tài nguyên và Bài toán Memory Leak}
+Dù phải gánh vác mức tải khổng lồ (hơn 3,500 truy vấn mỗi giây), bộ nhớ tiêu thụ (RAM) của ứng dụng Backend vô cùng khiêm tốn.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{img/benchmark_memory.png}
+    \caption{Biểu đồ giám sát RAM trong bài kiểm tra tải nặng (Stress-test)}
+    \label{fig:benchmark_memory}
+\end{figure}
+
+Dữ liệu Profiling (Hình \ref{fig:benchmark_memory}) ghi lại mức RAM sử dụng trong quá trình hệ thống xử lý lượng lớn yêu cầu. Biểu đồ theo hình răng cưa (Saw-tooth) thể hiện hoạt động của Garbage Collector (GC) trong Golang. Bộ nhớ cấp phát tăng lên ngưỡng ~2.8MB và được GC dọn dẹp về mức 1.2MB, cho thấy hệ thống không bị rò rỉ bộ nhớ (Memory Leak). 
+
+Đối với cơ sở dữ liệu Redis, việc áp dụng TTL cho mọi bản ghi giúp tự động giải phóng các thư đã hết hạn hoặc đã được đọc (\texttt{GETDEL}), duy trì lượng RAM sử dụng ở mức thấp.

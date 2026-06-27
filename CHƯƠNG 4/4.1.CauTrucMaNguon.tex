@@ -1,1 +1,45 @@
 \section{Cấu trúc mã nguồn}
+
+Dự án \textit{Secret Letter} được tổ chức theo mô hình \textbf{Monorepo} (Lưu trữ đơn khối), nơi toàn bộ mã nguồn của Máy khách (Frontend), Máy chủ (Backend), tài liệu kỹ thuật và kịch bản triển khai được quy tụ trong một kho lưu trữ (Repository) duy nhất. 
+
+Cách tiếp cận này mang lại lợi thế lớn trong việc duy trì tính đồng nhất (Consistency) giữa hợp đồng giao tiếp (API Contracts) và logic mật mã học. Bất kỳ thay đổi nào liên quan đến cấu trúc bản mã (Ciphertext) hay chuẩn mã hóa đều có thể được triển khai và kiểm thử đồng bộ trên cả hai nền tảng mà không gặp phải rào cản phân mảnh phiên bản (Version drift).
+
+Dưới đây là sơ đồ biểu diễn các vùng kỹ thuật hạt nhân của dự án:
+
+\vspace{0.5cm}
+\begin{figure}[H]
+    \centering
+    \begin{minipage}{0.9\textwidth}
+        \dirtree{%
+        .1 \normalfont secret-letter/.
+        .2 \normalfont backend/ \dots{} \begin{minipage}[t]{8cm}\normalfont Máy chủ Ứng dụng (Golang)\end{minipage}.
+        .3 \normalfont cmd/api/ \dots{} \begin{minipage}[t]{8cm}\normalfont Điểm khởi chạy nhị phân (Entrypoint)\end{minipage}.
+        .3 \normalfont internal/ \dots{} \begin{minipage}[t]{8cm}\normalfont Các mô-đun nghiệp vụ nội bộ\end{minipage}.
+        .4 \normalfont httpapi/ \dots{} \begin{minipage}[t]{8cm}\normalfont Quản lý Middleware và REST Handlers\end{minipage}.
+        .4 \normalfont secret/ \dots{} \begin{minipage}[t]{8cm}\normalfont Xác thực điều kiện và quản lý vòng đời\end{minipage}.
+        .4 \normalfont store/ \dots{} \begin{minipage}[t]{8cm}\normalfont Giao tiếp Redis (thực thi Lua Scripts)\end{minipage}.
+        .2 \normalfont deploy/ \dots{} \begin{minipage}[t]{8cm}\normalfont Hồ sơ triển khai cơ sở hạ tầng\end{minipage}.
+        .3 \normalfont local/ \dots{} \begin{minipage}[t]{8cm}\normalfont Môi trường phát triển cục bộ (Docker)\end{minipage}.
+        .3 \normalfont prod/ \dots{} \begin{minipage}[t]{8cm}\normalfont Cấu hình máy chủ vận hành thực tế\end{minipage}.
+        .2 \normalfont docs/ \dots{} \begin{minipage}[t]{8cm}\normalfont Tài liệu đặc tả (Product Spec, API Contracts)\end{minipage}.
+        .2 \normalfont frontend/ \dots{} \begin{minipage}[t]{8cm}\normalfont Ứng dụng trình duyệt (React + TypeScript)\end{minipage}.
+        .3 \normalfont web-app/src/.
+        .4 \normalfont components/ \dots{} \begin{minipage}[t]{8cm}\normalfont Các mảnh giao diện tái sử dụng\end{minipage}.
+        .4 \normalfont hooks/ \dots{} \begin{minipage}[t]{8cm}\normalfont Logic điều hướng và quản lý trạng thái\end{minipage}.
+        .4 \normalfont lib/ \dots{} \begin{minipage}[t]{8cm}\normalfont Thư viện Web Crypto và HTTP Clients\end{minipage}.
+        .4 \normalfont pages/ \dots{} \begin{minipage}[t]{8cm}\normalfont Giao diện các luồng tính năng chính\end{minipage}.
+        .2 \normalfont scripts/ \dots{} \begin{minipage}[t]{8cm}\normalfont Tập lệnh tự động hóa (Khởi động, Kiểm thử)\end{minipage}.
+        }
+    \end{minipage}
+    \caption{Cấu trúc thư mục Monorepo của dự án}
+    \label{fig:source_code_structure}
+\end{figure}
+\vspace{0.5cm}
+
+\begin{itemize}
+    \item \textbf{Phân vùng \texttt{backend/internal/}:} Đóng vai trò là trung tâm xử lý lưu trữ. Việc đóng gói toàn bộ logic vào không gian \texttt{internal} là một thiết kế tiêu chuẩn trong hệ sinh thái Go, giúp hệ thống ngăn chặn việc các gói mã nguồn bị rò rỉ (Encapsulation) hoặc bị sử dụng sai mục đích. Các tác vụ chuyên biệt như truy xuất Redis (\texttt{store/}) và kiểm duyệt mạng (\texttt{httpapi/}) được phân tách ranh giới rõ ràng, hỗ trợ việc mở rộng bảo trì mà không gây xáo trộn chéo.
+    
+    \item \textbf{Phân vùng \texttt{frontend/web-app/src/lib/}:} Là chốt chặn bảo mật quan trọng nhất, nơi hiện thực hóa mô hình Không tri thức (Zero-Knowledge). Trái ngược với các ứng dụng truyền thống thường phó thác bảo mật cho phía máy chủ, thư mục \texttt{lib/} chứa đựng trực tiếp bộ thuật toán mã hóa cục bộ. Bức thư nguyên bản (Plaintext) sẽ bị biến đổi thành văn bản nhiễu ngay tại lớp logic này, trước khi bước chân vào đường truyền mạng.
+    
+    \item \textbf{Phân vùng \texttt{docs/} và \texttt{deploy/}:} Minh chứng cho khả năng vận hành độc lập (Operability) của dự án. Sự hiện diện của các bộ đặc tả kiến trúc (Architecture Spec), hợp đồng mạng (API Contracts) và kịch bản phòng thủ (Hardening Spec) giúp tự động hóa hoàn toàn quy trình khởi chạy cơ sở hạ tầng thông qua Docker Compose trên cả môi trường nhà phát triển lẫn môi trường máy chủ sản phẩm.
+\end{itemize}

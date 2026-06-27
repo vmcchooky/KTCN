@@ -1,1 +1,144 @@
-\section{Chiến lược kiểm thử}
+\section{Chiến lược kiểm thử (Testing Strategy)}
+
+Chiến lược kiểm thử của dự án \textit{Secret Letter} bao gồm xác minh chức năng (Functional Testing), kiểm tra kỹ thuật mật mã (Cryptographic Verification) và đánh giá khả năng chịu tải, được chia thành các tầng cụ thể như sau:
+
+\subsection{Kiểm thử Đơn vị (Unit Testing)}
+
+Kiểm thử đơn vị xác minh tính chính xác của các hàm và module độc lập ở Frontend và Backend.
+\begin{itemize}
+    \item Frontend (Mật mã học): Kiểm thử các hàm gọi Web Crypto API. Kịch bản bao gồm: xác minh hàm tạo khóa (AES-GCM 256-bit) hợp lệ; sinh Initialization Vector (IV) mới; mã hóa/giải mã hoạt động chính xác. Đảm bảo hàm giải mã phát hiện lỗi khi chuỗi \texttt{ciphertext} bị thay đổi nhờ tính năng Authenticated Encryption.
+    \item Backend (Xử lý Core): Kiểm thử hàm tạo mã định danh (ID Generator). Dùng mock test cho lớp tương tác Redis để kiểm tra logic lưu trữ (\texttt{SETEX}) và logic đọc-rồi-hủy (\texttt{GETDEL}) độc lập với máy chủ thực tế.
+\end{itemize}
+
+\subsection{Kiểm thử Tích hợp (Integration Testing)}
+
+Kiểm thử tích hợp đánh giá luồng dữ liệu (Data flow) qua các thành phần của hệ thống.
+\begin{itemize}
+    \item Luồng tạo thông điệp (Creation Flow): Mô phỏng request HTTP POST với \texttt{ciphertext} giả lập gửi lên Backend và lưu vào Redis. Đảm bảo phản hồi chứa mã ID hợp lệ (HTTP status 201).
+    \item Luồng giải mã (Reveal Flow): Gọi HTTP GET để truy xuất \texttt{ciphertext} bằng ID. Xác minh dữ liệu được lấy ra thành công và không còn tồn tại trên Redis ở lần truy xuất thứ hai (kiểm chứng cơ chế Burn-after-reading).
+\end{itemize}
+
+\subsection{Kiểm thử Bảo mật \& Tuân thủ Zero-Knowledge (Security Testing)}
+
+Quá trình này tập trung vào các tiêu chuẩn an toàn của ứng dụng:
+\begin{itemize}
+    \item Kiểm chứng hộp đen (Black-box Verification): Kiểm tra dữ liệu thô lưu trong Redis, đảm bảo không có bản rõ (Plaintext) hoặc khóa bí mật (\texttt{\#key}) nào bị lưu trữ trên máy chủ.
+    \item Kiểm thử giới hạn (Rate Limiting \& Payload Size): Cố tình vi phạm chính sách giới hạn để kiểm tra API. Kết quả mong đợi là mã lỗi \texttt{429 Too Many Requests} hoặc \texttt{413 Payload Too Large}.
+    \item Kiểm thử kháng XSS (Cross-Site Scripting): Chèn mã độc JavaScript (ví dụ: \texttt{<script>alert(1)</script>}). Nội dung sau khi giải mã phải được render dưới dạng văn bản tĩnh (Text Node) thay vì thực thi.
+\end{itemize}
+
+\subsection{Kiểm thử Chịu tải (Load \& Stress Testing)}
+
+Mặc dù có kiến trúc nhẹ, khả năng chịu tải của hệ thống vẫn cần được định lượng bằng các công cụ chuyên dụng như \textbf{k6} hoặc \textbf{JMeter}:
+\begin{itemize}
+    \item Bắn đồng thời hàng nghìn request tạo thông điệp ảo (Concurrent connecti\-ons) trong một khoảng thời gian ngắn.
+    \item Theo dõi mức độ tiêu thụ RAM của tiến trình Redis và CPU của tiến trình Backend (Go routine overhead).
+    \item Dựa trên kết quả benchmark để tinh chỉnh các thông số Rate Limiting cho cấu hình Production.
+\end{itemize}
+
+\subsection{Thực nghiệm và Kết quả kiểm thử (Experimental Results)}
+
+Mã nguồn Backend của \textit{Secret Letter} sử dụng công cụ kiểm thử tích hợp của Go (\texttt{testing} package).
+
+\subsubsection{Kết quả chạy kiểm thử tự động (Automated Test Execution)}
+Việc kiểm thử được tiến hành qua lệnh \texttt{go test ./...}. Các kịch bản kiểm thử luồng cốt lõi (API, Rate Limit, Validation, Redis Service) đều vượt qua:
+
+\begin{lstlisting}[language=bash, caption={Kết quả thực thi Unit Test và Integration Test trên Backend}, label={lst:go_test_results}, showstringspaces=false, breaklines=true, basicstyle=\small\ttfamily]
+$ go test ./...
+?       github.com/quorix/secret-letter/backend/cmd/api    [no test files]
+ok      github.com/quorix/secret-letter/backend/internal/config       0.012s
+ok      github.com/quorix/secret-letter/backend/internal/httpapi      0.084s
+ok      github.com/quorix/secret-letter/backend/internal/ratelimit    0.009s
+ok      github.com/quorix/secret-letter/backend/internal/secret       0.045s
+ok      github.com/quorix/secret-letter/backend/test                  1.240s
+\end{lstlisting}
+
+\subsubsection{Kiểm thử mật mã tại Frontend (Web Crypto API)}
+Tại phía Client, các hàm thao tác với Web Crypto API được kiểm chứng bằng Jest để đảm bảo tính chính xác của quá trình mã hóa/giải mã và kiểm tra cơ chế phát hiện lỗi (Authenticated Encryption). Dưới đây là trích đoạn kịch bản kiểm thử hành vi ném ngoại lệ khi \texttt{ciphertext} bị giả mạo:
+
+\begin{lstlisting}[caption={Kịch bản kiểm thử Jest phát hiện giả mạo dữ liệu mã hóa}, label={lst:jest_crypto}, showstringspaces=false, breaklines=true, basicstyle=\small\ttfamily]
+test('decrypt should throw error if ciphertext is tampered', async () => {
+  const plaintext = "Sensitive data";
+  const { ciphertext, key, iv } = await encryptMessage(plaintext);
+  
+  // Tamper with data: flip the first byte
+  const tamperedCiphertext = new Uint8Array(ciphertext);
+  tamperedCiphertext[0] ^= 1; 
+
+  // Expect decryption to fail
+  await expect(
+    decryptMessage(tamperedCiphertext.buffer, key, iv)
+  ).rejects.toThrow(); // Rejected by AES-GCM algorithm
+});
+\end{lstlisting}
+
+\subsubsection{Kiểm thử thuật toán mã hóa (Security Test Case)}
+Dưới đây là trích đoạn mã từ file \texttt{validation\_test.go} thực hiện bài test hộp trắng (White-box testing) nhằm đảm bảo API chỉ chấp nhận thuật toán \texttt{AES-GCM}:
+
+\begin{lstlisting}[language=Go, caption={Kịch bản Unit Test ngăn chặn thuật toán mã hóa không an toàn}, label={lst:test_algorithm}, showstringspaces=false, breaklines=true, basicstyle=\small\ttfamily]
+func TestValidateCreateSecretRequest(t *testing.T) {
+	// ...
+	t.Run("rejects invalid algorithm", func(t *testing.T) {
+		req := CreateSecretRequest{
+			Ciphertext: "dGVzdA",
+			Nonce:      "MTIzNDU2Nzg5MDEy",
+			Algorithm:  "AES-CBC", // Intentionally using CBC instead of GCM
+			TTLSeconds: 3600,
+		}
+
+		err := ValidateCreateSecretRequest(req)
+		if err == nil {
+			t.Error("expected validation error for invalid algorithm")
+		}
+        
+		// Verify the system throws exact error "invalid_algorithm"
+		if multiErr, ok := err.(*MultiValidationError); ok {
+			found := false
+			for _, valErr := range multiErr.Errors {
+				if valErr.Field == "algorithm" && valErr.Code == "invalid_algorithm" {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("expected invalid_algorithm error, got: %v", multiErr)
+			}
+		}
+	})
+}
+\end{lstlisting}
+
+Kịch bản kiểm thử này giúp phòng tránh nguy cơ tấn công hạ cấp thuật toán mã hóa (Downgrade Attack).
+
+\subsubsection{Kịch bản kiểm thử chịu tải (Load Testing Script)}
+Để đánh giá năng lực của máy chủ, dự án sử dụng công cụ \textbf{k6} mô phỏng hàng trăm người dùng liên tục tạo thông điệp cùng lúc. Kết quả chạy thực tế ghi nhận thông lượng (Throughput) đạt hơn 3,500 RPS và độ trễ p95 luôn duy trì dưới 50ms ngay cả khi hệ thống chịu tải ở mức 500 VUs (Virtual Users), trong khi CPU của hệ thống vẫn ở ngưỡng an toàn:
+
+\begin{lstlisting}[caption={Kịch bản mô phỏng tải (Load Test) tạo thông điệp bằng k6}, label={lst:k6_script}, showstringspaces=false, breaklines=true, basicstyle=\small\ttfamily]
+import http from 'k6/http';
+import { check } from 'k6';
+
+// Configure simulation for 500 concurrent users over 30 seconds
+export const options = {
+    vus: 500,
+    duration: '30s',
+};
+
+export default function () {
+    const payload = JSON.stringify({
+        ciphertext: "dGVzdC1sb2FkLXRlc3Q=",
+        nonce: "MTIzNDU2Nzg5MDEy",
+        algorithm: "AES-GCM",
+        ttl_seconds: 3600
+    });
+
+    const params = { headers: { 'Content-Type': 'application/json' } };
+
+    // Send POST request to create a secret
+    const res = http.post('http://localhost:8080/api/secrets', payload, params);
+
+    // Assert that the request was successful
+    check(res, {
+        'status is 201': (r) => r.status === 201,
+        'has id': (r) => JSON.parse(r.body).id !== undefined,
+    });
+}
+\end{lstlisting}

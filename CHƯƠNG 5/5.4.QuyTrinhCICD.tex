@@ -1,1 +1,75 @@
 \section{Quy trình CI/CD và Triển khai}
+\label{sec:cicd_pipeline}
+
+Để đảm bảo chất lượng mã nguồn và tự động hóa quy trình phân phối, dự án Secret Letter xây dựng luồng CI/CD (Continuous Integration / Continuous Deployment) hoàn chỉnh thông qua nền tảng \textbf{GitHub Actions}.
+
+Sơ đồ \ref{fig:cicd_pipeline} minh họa tổng quan kiến trúc của hai luồng tự động hóa chính, đóng vai trò như những "chốt chặn chất lượng" (Quality Gates) trước khi đưa sản phẩm đến tay người dùng.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        node distance=1.2cm and 1.2cm,
+        box/.style={rectangle, draw, rounded corners, fill=gray!20, minimum width=3cm, minimum height=0.8cm, align=center, font=\sffamily\small},
+        action/.style={rectangle, draw, fill=green!10, minimum width=2.5cm, minimum height=0.8cm, align=center, font=\sffamily\small},
+        deploy/.style={rectangle, draw, rounded corners, fill=orange!10, minimum width=3cm, minimum height=0.8cm, align=center, font=\sffamily\small},
+        arrow/.style={thick,->,>=stealth},
+        line/.style={thick,-}
+        ]
+        
+        % Nodes
+        \node (push) [box] {Push / PR to \texttt{main}};
+        
+        \node (frontend) [action, below=1cm of push] {Frontend Verify};
+        \node (backend) [action, left=0.5cm of frontend] {Backend Verify};
+        \node (deployverify) [action, right=0.5cm of frontend] {Deploy Verify};
+        
+        \node (e2e) [action, below=1cm of frontend, fill=purple!10, minimum width=3cm] {End-to-End Test (Playwright)};
+        
+        \node (tag) [box, right=4cm of push] {Push Tag \texttt{v*}};
+        
+        \node (build) [deploy, below=1cm of tag] {Build Release Assets};
+        \node (publish) [deploy, below=1.3cm of build] {Publish GitHub Release};
+        \node (staging) [deploy, below=1cm of publish] {Deploy to Staging};
+        
+        % Background boxes
+        \begin{scope}[on background layer]
+            \node[fill=blue!5, rounded corners, draw=blue!30, dashed, fit=(push) (backend) (frontend) (deployverify) (e2e), inner sep=0.4cm, label={[font=\sffamily\bfseries, text=blue]above:Continuous Integration (CI)}] (ci_box) {};
+            \node[fill=orange!5, rounded corners, draw=orange!30, dashed, fit=(tag) (build) (publish) (staging), inner sep=0.4cm, label={[font=\sffamily\bfseries, text=orange]above:Continuous Deployment (CD)}] (cd_box) {};
+        \end{scope}
+
+        % Arrows
+        \draw [arrow] (push) -- (backend);
+        \draw [arrow] (push) -- (frontend);
+        \draw [arrow] (push) -- (deployverify);
+        
+        \draw [arrow] (backend) |- (e2e);
+        \draw [arrow] (frontend) -- (e2e);
+        \draw [arrow] (deployverify) |- (e2e);
+        
+        \draw [arrow] (tag) -- (build);
+        \draw [arrow] (build) -- (publish);
+        \draw [arrow] (publish) -- (staging);
+        
+    \end{tikzpicture}
+    \caption{Sơ đồ tổng quan kiến trúc CI/CD bằng GitHub Actions}
+    \label{fig:cicd_pipeline}
+\end{figure}
+
+\subsection{Giai đoạn 1: Tích hợp liên tục và Kiểm duyệt (CI)}
+Luồng Tích hợp liên tục (CI) đóng vai trò là hàng rào bảo mật và kiểm thử cốt lõi. Cụ thể, thông qua tính năng \textbf{Branch Protection} của GitHub, nhánh \texttt{main} được khóa lại, yêu cầu bất kỳ đoạn mã mới nào (Pull Request) cũng phải vượt qua 100\% các bài test tự động trước khi được hợp nhất (Merge).
+
+Luồng này bao gồm các công đoạn:
+\begin{itemize}
+    \item \textbf{Phân tích Tĩnh \& Unit Test:} Mã nguồn Backend được quét lỗ hổng bằng \texttt{gosec} (phát hiện rò rỉ mã hóa, SQL Injection) và \texttt{govulncheck} (quét các lỗ hổng CVE trong thư viện). Tại Frontend, các bài test được khởi chạy bằng \texttt{Jest} kết hợp với lệnh \texttt{npm audit} để loại trừ thư viện độc hại.
+    \item \textbf{Tính Toàn vẹn cấu hình (Deploy Verify):} Hệ thống chạy môi trường giả lập nhằm biên dịch thử tệp \texttt{docker-compose} và \texttt{Caddyfile}, đồng thời sinh mã băm SHA256 giả lập để đảm bảo kịch bản bash shell không có lỗi cú pháp.
+    \item \textbf{Kiểm thử Đầu - Cuối (End-to-End):} Sau khi các bước Unit Test hoàn tất, một phiên bản trình duyệt Chromium không giao diện (Headless) được \textbf{Playwright} khởi chạy để mô phỏng một luồng tạo thư và giải mã hoàn chỉnh của người dùng thực.
+\end{itemize}
+
+Sự kết hợp này đảm bảo tính năng mới không bao giờ làm hỏng kiến trúc Zero-Knowledge đã thiết kế ở Chương 3.
+
+\subsection{Giai đoạn 2: Phát hành và Triển khai liên tục (CD)}
+Luồng Triển khai (CD) chỉ được kích hoạt khi nhà phát triển đánh dấu một mốc phát hành (Tag \texttt{v*}). Lúc này, thay vì kiểm thử, GitHub Actions sẽ đóng vai trò như một cỗ máy biên dịch và phân phối:
+\begin{itemize}
+    \item \textbf{Đóng gói Tài nguyên (Build Assets):} Backend Go được biên dịch chéo (Cross-compile) thành tệp nhị phân cho Linux, trong khi Frontend được Vite đóng gói thành tài nguyên tĩnh. Một bản kê khai \texttt{release-manifest.json} chứa mã băm SHA256 của từng tệp được tạo ra để đảm bảo không có sự can thiệp từ bên thứ ba trong quá trình tải xuống.
+    \item \textbf{Phân phối \& Triển khai:} Các tệp nén (\texttt{.tar.gz}) được đính kèm trực tiếp vào trang GitHub Release. Sau đó, máy chủ CI kết nối SSH an toàn vào VPS (môi trường Staging) thông qua \texttt{GitHub Secrets}, giải nén và cập nhật dịch vụ mà không yêu cầu can thiệp thủ công từ kỹ sư vận hành.
+\end{itemize}

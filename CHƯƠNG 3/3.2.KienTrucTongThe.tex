@@ -1,1 +1,88 @@
 \section{Kiến trúc tổng thể}
+
+Kiến trúc của hệ thống \textit{Secret Letter} được thiết kế theo mô hình Nguyên khối Mô-đun hóa (Modular Monolith) ở giai đoạn MVP. Lựa chọn này bắt nguồn từ nhu cầu tối ưu hóa chi phí vận hành ban đầu, đồng thời vẫn phải duy trì tính kỷ luật trong việc phân định ranh giới dịch vụ (Service Boundaries). Sự tách bạch logic nội bộ ngay từ sớm tạo tiền đề để hệ thống có thể chuyển đổi mượt mà sang kiến trúc vi dịch vụ (Microservices) khi quy mô dự án và lưu lượng truy cập mở rộng.
+
+Căn cứ theo hướng dẫn của mô hình C4 (C4 Model) - Cấp độ 2 (Container Diagram), hệ sinh thái kỹ thuật của dự án được biểu diễn trực quan như sau:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\sffamily\small,
+    >={Stealth[round, scale=1.1]},
+    user/.style={draw=orange!40, fill=orange!5, rounded corners=6pt, inner sep=10pt, align=center, font=\bfseries, minimum width=2.5cm},
+    spa/.style={draw=blue!40, fill=blue!5, rounded corners=6pt, inner sep=10pt, align=center, minimum width=3cm, minimum height=1.2cm},
+    api/.style={draw=purple!40, fill=purple!5, rounded corners=6pt, inner sep=10pt, align=center, minimum width=3cm, minimum height=1.2cm},
+    db/.style={draw=teal!40, fill=teal!5, rounded corners=6pt, inner sep=10pt, align=center, minimum width=3cm, minimum height=1.2cm},
+    group/.style={draw=gray!50, dashed, rounded corners=8pt, inner sep=15pt, inner ysep=25pt},
+    arrow/.style={->, thick, gray!80, rounded corners=4pt}
+]
+
+% Nodes
+\node[user] (user) at (0, 8) {Người dùng\\(Sender / Receiver)};
+
+\node[spa] (frontend) at (0, 5) {\textbf{Single Page Application}\\React 19, TypeScript\\(Trình duyệt Web)};
+
+% Backend Group
+\node[api] (gateway) at (0, 0) {\textbf{API Gateway \& Middleware}\\Rate Limiting, CORS};
+\node[api] (secretsvc) at (-3.5, -2) {\textbf{Secret Service}\\Xử lý lưu trữ};
+\node[api] (revealsvc) at (3.5, -2) {\textbf{Reveal Service}\\Quản lý phiên};
+\node[db] (redis) at (0, -4.5) {\textbf{In-Memory Storage}\\Redis 7+};
+
+% Group boxes - Đặt label lệch trái (anchor=south east) để không đè lên mũi tên chính giữa
+\node[group, fit=(gateway) (secretsvc) (revealsvc) (redis), label={[font=\bfseries, text=gray!80, anchor=south east, xshift=-0.5cm]above:Máy chủ Điện toán (Cloud Instance)}] (backend_group) {};
+
+% Arrows - Đẩy text lệch phải (xshift=5pt) để nhường không gian cho mũi tên
+\draw[arrow] (user) -- node[right, font=\scriptsize, align=left, xshift=5pt] {HTTPS} (frontend);
+\draw[arrow] (frontend) -- node[right, font=\scriptsize, align=left, xshift=5pt] {JSON / REST API} (gateway);
+\draw[arrow] (gateway) -- (secretsvc);
+\draw[arrow] (gateway) -- (revealsvc);
+\draw[arrow] (secretsvc) |- (redis);
+\draw[arrow] (revealsvc) |- (redis);
+
+\end{tikzpicture}
+\caption{Sơ đồ Container (C4 Model - Mức 2) phân tách ranh giới dịch vụ}
+\label{fig:c4_container}
+\end{figure}
+
+\subsection{Chi tiết các thành phần (Containers)}
+
+Hệ thống được cấu thành từ ba khối thực thể độc lập, phối hợp với nhau qua các giao thức mạng chuẩn nhằm duy trì vòng đời thông điệp:
+
+\begin{itemize}
+    \item \textbf{Single Page Application (SPA):} Chịu trách nhiệm thực thi giao diện người dùng và logic mật mã học. Bằng việc tích hợp Web Crypto API, quá trình mã hóa/giải mã (AES-GCM) được thực thi trực tiếp tại máy khách. Điều này phản ánh nguyên lý Zero-Knowledge cốt lõi: hạn chế tối đa rủi ro văn bản rõ (plaintext) bị truyền tải vào đường mạng.
+    
+    \item \textbf{Máy chủ Ứng dụng (Backend Monolith):} Một tệp thực thi duy nhất (Single Binary) được biên dịch từ ngôn ngữ Go, tối ưu cho tốc độ và khả năng xử lý đồng thời. Dù chỉ là một tệp nhị phân, kiến trúc bên trong được chia cắt chặt chẽ theo miền nghiệp vụ:
+    \begin{itemize}
+        \item \textit{Lớp Gateway \& Middleware:} Đóng vai trò kiểm duyệt biên. Tầng này gán định danh (Request ID) cho mục đích truy vết, thiết lập chính sách CORS và thực thi cơ chế giới hạn lưu lượng (Rate Limiting) theo địa chỉ IP nhằm giảm thiểu tác động từ các đợt tấn công cạn kiệt tài nguyên.
+        \item \textit{Secret Service:} Đảm nhận nghiệp vụ lưu trữ thông điệp mã hóa. Dịch vụ này giao tiếp với cơ sở dữ liệu để quản lý siêu dữ liệu (Metadata) và gán vòng đời (TTL).
+        \item \textit{Reveal Service:} Chịu trách nhiệm cấp phát các phiên giải mã ngắn hạn (Reveal Session). Dịch vụ này thực thi kịch bản khóa nguyên tử nhằm hạn chế tối đa hiện tượng tương tranh (Race Condition) khi có nhiều yêu cầu mở liên kết cùng lúc.
+    \end{itemize}
+    
+    \item \textbf{Cơ sở dữ liệu (In-Memory Storage):} Hệ quản trị Redis 7+ được thiết lập cục bộ. Điểm mạnh của Redis trong bài toán này nằm ở cấu trúc đơn luồng (Single-Threaded) kết hợp với Lua Script. Khả năng này cho phép hệ thống vận hành chuỗi lệnh "kiểm tra - trả về - xóa" một cách liền mạch, đảm bảo tính nguyên tử (atomic) của giao dịch.
+\end{itemize}
+
+\subsection{Chiến lược triển khai và Bảng phân tả công nghệ}
+
+Triết lý triển khai của dự án hướng đến sự linh hoạt và tính sẵn sàng cao (High Availability). Các luồng giao tiếp chính được thiết lập qua một lớp Reverse Proxy chuyên dụng nhằm tự động hóa quá trình cấp phát chứng chỉ SSL/TLS và thiết lập mã hóa toàn trình. Song song với máy chủ điện toán chính yếu, một môi trường dự phòng (Warm Standby) liên tục được duy trì. Trong trường hợp phát sinh sự cố tại trung tâm dữ liệu chính, quản trị viên có thể thao tác điều hướng bản ghi DNS để phục hồi dịch vụ.
+
+Dưới đây là bảng phân tả chi tiết bộ công nghệ (Tech Stack) áp dụng cho từng Container:
+
+\begin{table}[H]
+\centering
+\caption{Bảng phân tả công nghệ theo Container}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|p{3.5cm}|p{5cm}|p{6cm}|}
+\hline
+\textbf{Thành phần} & \textbf{Công nghệ cốt lõi} & \textbf{Lý do lựa chọn} \\
+\hline
+\textbf{Frontend (SPA)} & React 19, TypeScript, Web Crypto API, Vite & Hệ sinh thái mạnh mẽ, kiểm soát kiểu tĩnh chặt chẽ, tối ưu thuật toán mật mã học an toàn ngay trên trình duyệt. \\
+\hline
+\textbf{Backend (Monolith)} & Go 1.26+, \texttt{net/http} & Hiệu suất xử lý I/O mạng ưu việt (Goroutines), triển khai tinh gọn thông qua định dạng tệp thực thi độc lập. \\
+\hline
+\textbf{Database} & Redis 7+ & Cung cấp độ trễ siêu thấp cho thao tác truy xuất, tích hợp sẵn tập lệnh Lua nguyên tử phục vụ nghiệp vụ tự hủy. \\
+\hline
+\textbf{Reverse Proxy} & Caddy Server & Cấu hình tối giản, thiết kế hướng bảo mật (memory-safe), cơ chế tự động gia hạn chứng chỉ HTTPS. \\
+\hline
+\end{tabular}
+\label{tab:tech_stack}
+\end{table}

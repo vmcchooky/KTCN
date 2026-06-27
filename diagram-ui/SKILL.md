@@ -43,5 +43,6 @@ Khuyến khích sử dụng cách tiếp cận Code để vẽ hình nhằm dễ
 - [ ] Mũi tên có đi theo một hướng logic không?
 - [ ] Màu sắc có bị chói, gắt hay quá nhiều không?
 - [ ] Các khối đã được nhóm (Group/Fit) vào đúng ngữ cảnh chưa (VD: User, Server, Database)?
+- [ ] Khi dùng thư viện `fit` để gom nhóm, thuộc tính `label=above:` có bị đè bởi mũi tên đi từ trên xuống không? **(Khắc phục: Tăng khoảng cách tọa độ y giữa các node, đặt label sang `above left`/`above right`, hoặc dùng `shift={(x,y)}` để tách bạch văn bản và đường kẻ).**
 - [ ] Chữ có bị đè lên đường kẻ hay viền khối không? (Cần điều chỉnh `inner sep` hoặc tọa độ).
 - [ ] Font chữ có đồng nhất với báo cáo/tài liệu không? (VD: `\sffamily` hoặc `Times New Roman`).

@@ -5,13 +5,13 @@ Giới hạn phạm vi bài toán là bước tiên quyết để duy trì sự 
 \textbf{Phạm vi chức năng và dữ liệu:}
 \begin{itemize}
     \item Hệ thống chỉ tiếp nhận và xử lý dữ liệu dưới dạng văn bản thuần (plain text). Luồng xử lý này nhắm trực tiếp đến bài toán trao đổi thông tin ngắn: chuỗi mật khẩu, đường dẫn máy chủ, cấu hình hệ thống hay mã định danh (access token).
-    \item Sự đánh đổi (trade-off) lớn nhất trong giai đoạn này là việc khước từ hỗ trợ các tệp tin đa phương tiện (hình ảnh, video, tệp nén). Mã hóa dữ liệu nhị phân dung lượng lớn trực tiếp trên bộ nhớ trình duyệt qua Web Crypto API có thể dẫn đến hiện tượng tràn RAM và sụt giảm hiệu năng. Bằng cách loại bỏ tính năng này, hệ thống nhường không gian tối đa cho độ trễ thấp và sự ổn định của luồng thao tác văn bản.
+    \item Sự đánh đổi (trade-off) lớn nhất trong giai đoạn này là việc khước từ hỗ trợ các tệp tin đa phương tiện (hình ảnh, video, tệp nén). Việc xử lý và mã hóa các tệp tin lớn trực tiếp trên trình duyệt đòi hỏi kỹ thuật phân mảnh phức tạp (Streaming encryption) và tiêu tốn nhiều tài nguyên thiết bị. Nhằm duy trì triết lý tinh gọn và độ trễ thấp, dự án chủ động loại bỏ tính năng này, nhường không gian tối đa cho luồng thao tác văn bản.
 \end{itemize}
 
 \textbf{Phạm vi công nghệ:}
 \begin{itemize}
     \item \textit{Phía trình duyệt (Client-side):} Nền tảng áp đặt một rào cản kỹ thuật khắt khe. Chỉ những trình duyệt hiện đại, có hỗ trợ hàm API gốc của hệ điều hành (Web Crypto API) mới đủ điều kiện tương tác. Bất kỳ môi trường nào không đáp ứng tiêu chuẩn xử lý AES-256-GCM đều bị từ chối phục vụ.
-    \item \textit{Phía máy chủ (Backend):} Kiến trúc kiên quyết nói không với cơ sở dữ liệu quan hệ (SQL) và các giải pháp lưu trữ bám rễ trên ổ cứng (persistent storage). Việc ghi log hay lưu vết trên đĩa cứng (SSD/HDD) luôn tiềm ẩn nguy cơ khôi phục lại mảnh vỡ dữ liệu bằng các kỹ thuật pháp y kỹ thuật số (digital forensics). Thay vào đó, nền tảng chỉ sử dụng API RESTful viết bằng Golang và thao tác lưu trữ bay hơi (volatile memory) trên Redis.
+    \item \textit{Phía máy chủ (Backend):} Kiến trúc chủ trương không sử dụng cơ sở dữ liệu quan hệ (SQL) và các giải pháp lưu trữ vĩnh viễn trên ổ đĩa (persistent storage). Việc ghi log hay lưu vết trên đĩa cứng (SSD/HDD) luôn tiềm ẩn nguy cơ khôi phục lại mảnh vỡ dữ liệu bằng các kỹ thuật pháp y kỹ thuật số (digital forensics). Thay vào đó, nền tảng chỉ sử dụng API RESTful viết bằng Golang và thao tác lưu trữ bay hơi (volatile memory) trên Redis.
 \end{itemize}
 
 \textbf{Môi trường ứng dụng thực tiễn:}

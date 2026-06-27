@@ -1,1 +1,44 @@
-\section{Giải quyết bài toán kỹ thuật}
+\section{Giải quyết các bài toán kỹ thuật}
+
+Quá trình phát triển \textit{Secret Letter} đòi hỏi sự kết hợp chặt chẽ giữa thiết kế hệ thống và nghiệp vụ mật mã học. Dưới đây là hai bài toán kỹ thuật then chốt và phương án giải quyết đã được áp dụng trong dự án.
+
+\subsection{Bảo mật khóa giải mã trên đường truyền}
+
+\textbf{Bài toán:} Mặc dù văn bản đã được mã hóa cục bộ tại Client (trình duyệt), khóa giải mã vẫn phải được chia sẻ từ người gửi đến người nhận. Nếu khóa này vô tình bị rò rỉ qua các tiêu đề giao thức (HTTP Headers), nhật ký truy cập (Access Logs) của máy chủ, hoặc các nút phân phối mạng trung gian (Proxy/Load Balancer), nguyên tắc Không tri thức (Zero-Knowledge) sẽ bị ảnh hưởng nghiêm trọng.
+
+\textbf{Giải pháp:} Dự án khai thác một đặc tính cốt lõi của tiêu chuẩn web: \textbf{URL Fragment} (phần chuỗi ký tự nằm sau dấu \texttt{\#}).
+Theo tiêu chuẩn RFC 3986, các trình duyệt web hiện đại có cơ chế giữ lại toàn bộ URL Fragment ở phía thiết bị người dùng và mặc định không đính kèm đoạn dữ liệu này vào các gói tin HTTP gửi lên máy chủ. Định dạng liên kết bí mật được thiết kế dưới dạng:
+\begin{center}
+    \texttt{https://domain/[ID]\#[Khoa\_Giai\_Ma]}
+\end{center}
+Nhờ vậy, khi người nhận truy cập liên kết, máy chủ Backend chỉ nhận được \texttt{[ID]} để tiến hành truy xuất bản mã, trong khi \texttt{[Khoa\_Giai\_Ma]} vẫn nằm lại an toàn trên thanh địa chỉ của trình duyệt, sẵn sàng cho công đoạn phục hồi dữ liệu. Phương pháp này giúp hạn chế nguy cơ khóa giải mã bị đánh cắp trên đường truyền mạng.
+
+Để chứng minh cho đặc tính Zero-Knowledge này, dưới đây là nguyên trạng khối dữ liệu (Secret Payload) được trích xuất trực tiếp từ cơ sở dữ liệu Redis trên máy chủ Production của dự án:
+
+\renewcommand{\lstlistingname}{Đoạn mã}
+\begin{lstlisting}[caption={Cấu trúc Secret Payload thực tế trích xuất từ Server Production}, breaklines=true, basicstyle={\small\ttfamily}]
+{
+  "ciphertext": "XyYSRTEeyzxdOhz7B_2ZwOPpw7lOVUrLvCLzmoulJBkdB3x4mc_P2DRIF
+                 bpQqxBC74nfI-wxxLoEmIe9LzaZOD0mDAjP4BxeXFOIgdL3xkT1drcZTbLa
+                 xevGpNcJGWPTrYoznCXZ2qaouVRcSl6OfrG4a5F5yuHMFv3i8ydGx97XIvs
+                 MUNnXfYUa1UJaVnHThbsln4R-uw9ckIvWXq2YYpk76Ch7zgH4AJM4Er9cZ4
+                 1CeYYKbxsazwdqy12d17rYoE81xwrH80dL9BUI92LWBshlX0HZJGtlrLdc1
+                 n8LIACTq-PYHX-qf_RQoCe6ztCOqfEYgEo4aazaaPBHh9GdVjcj",
+  "nonce": "GLyaoBvfk-I2PNYt",
+  "algorithm": "AES-GCM"
+}
+\end{lstlisting}
+
+Như có thể thấy, trường \texttt{ciphertext} chỉ là một chuỗi ký tự Base64 vô nghĩa và dữ liệu Metadata đã được hệ thống bóc tách lưu ở một khóa (Key) độc lập. Việc hoàn toàn vắng bóng khóa giải mã trong cấu trúc lưu trữ này khẳng định hệ thống Server không có khả năng tự giải mã nội dung bức thư dưới bất kỳ hình thức nào.
+
+\subsection{Đồng bộ hóa trạng thái tiêu hủy (Burn-after-reading)}
+
+\textbf{Bài toán:} Đặc tả tính năng yêu cầu hệ thống phải hủy bức thư ngay sau \textit{lần đọc đầu tiên}. Tuy nhiên, môi trường mạng thực tế luôn tồn tại hai rủi ro lớn:
+\begin{itemize}
+    \item Các chương trình thu thập dữ liệu tự động (Web Crawlers) của các ứng dụng nhắn tin (như Facebook, Telegram, Zalo) thường tự động truy cập liên kết để lấy siêu dữ liệu (Metadata). Nếu hệ thống tính đây là một lần đọc, bức thư sẽ bị hủy trước khi đến tay người nhận.
+    \item Người nhận hoặc kẻ tấn công có thể cố tình mở liên kết cùng lúc trên nhiều thiết bị khác nhau để tạo ra trạng thái tương tranh (Race Condition), nhằm đánh lừa hệ thống tải bản mã về nhiều lần.
+\end{itemize}
+
+\textbf{Giải pháp:} Để xử lý vấn đề thứ nhất, giao diện Frontend áp dụng cơ chế \textbf{Cổng tương tác (Anti-Bot Gate)}. Thay vì tải và giải mã ngay lập tức khi mở trang, màn hình \texttt{RevealPage} thiết lập một rào cản yêu cầu người dùng phải thực hiện thao tác vật lý (nhấn nút "Mở thư"). Lớp bảo vệ này giúp ngăn chặn sự can thiệp của các kịch bản thu thập dữ liệu tự động.
+
+Đối với vấn đề thứ hai, tầng dữ liệu Backend sử dụng \textbf{Giao dịch nguyên tử (Atomic Transaction)} thông qua cơ chế Redis Lua Script. Khi có nhiều yêu cầu mạng gửi đến trong cùng một thời điểm, bản chất xử lý đơn luồng của hệ thống Redis sẽ phân loại và hỗ trợ đảm bảo chỉ có một yêu cầu hợp lệ được trả về bản mã, đồng thời thực thi ngay lệnh xóa (\texttt{DEL}). Mọi luồng yêu cầu đến sau đều nhận về trạng thái không tìm thấy dữ liệu. Sự kết hợp nhịp nhàng giữa Client (vô hiệu hóa Bot) và Server (xử lý Race Condition) tạo nên một luồng tiêu hủy dữ liệu an toàn và nhất quán.

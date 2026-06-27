@@ -27,7 +27,7 @@
 *.cb2
 
 # Nếu bạn không muốn đưa file PDF lên GitHub, hãy bỏ comment dòng dưới đây
-# *.pdf
+*.pdf
 
 # ==========================================
 # Python files (cho các file như make_template.py)
