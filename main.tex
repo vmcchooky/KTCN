@@ -304,7 +304,7 @@ Trong bối cảnh bảo mật thông tin số ngày càng được đề cao, v
 
 Hệ thống được thiết kế sử dụng thuật toán AES-256-GCM qua Web Crypto API, đảm bảo dữ liệu luôn được mã hóa tại trình duyệt người dùng trước khi gửi đến máy chủ. Điểm nổi bật là khóa giải mã được nhúng vào URL fragment, giúp ngăn chặn triệt để việc máy chủ tiếp cận được nội dung bản rõ (plaintext). Phía Backend sử dụng Golang kết hợp với Redis để xử lý logic lưu trữ có thời hạn (TTL) và đảm bảo tính nguyên tử (atomic) để bí mật chỉ có thể được đọc một lần duy nhất.
 
-Kết quả triển khai hệ thống cho thấy Secret Letter không chỉ đáp ứng tốt các yêu cầu về an toàn thông tin mà còn duy trì hiệu năng cao, khả năng chịu tải tốt và chống lại các bot cào dữ liệu qua cơ chế Reveal Gate. Hệ thống sẵn sàng làm nền tảng cho các nghiệp vụ trao đổi thông tin nhạy cảm của cá nhân và doanh nghiệp. Mã nguồn mở của hệ thống được công bố công khai tại kho lưu trữ GitHub \url{https://github.com/vmcchooky/secret-letter} và ứng dụng đang được vận hành thực tế tại \url{https://secret.quorxi.io.vn}.
+Kết quả triển khai hệ thống cho thấy Secret Letter không chỉ đáp ứng tốt các yêu cầu về an toàn thông tin mà còn duy trì hiệu năng cao, khả năng chịu tải tốt và chống lại các bot cào dữ liệu qua cơ chế Reveal Gate. Hệ thống sẵn sàng làm nền tảng cho các nghiệp vụ trao đổi thông tin nhạy cảm của cá nhân và doanh nghiệp. Mã nguồn mở của hệ thống được công bố công khai tại kho lưu trữ GitHub \url{https://github.com/vmcchooky/secret-letter} và ứng dụng đang được vận hành thực tế tại \url{https://secret.quorix.io.vn}.
 
 \clearpage
 
@@ -318,7 +318,7 @@ In the context of increasing digital information security, sharing sensitive dat
 
 The system is designed using the AES-256-GCM algorithm via the Web Crypto API, ensuring that data is always encrypted in the user's browser before being sent to the server. A key feature is that the decryption key is embedded in the URL fragment, completely preventing the server from accessing the plaintext content. The Backend uses Golang combined with Redis to handle time-to-live (TTL) expiration mechanisms and ensure atomic operations so that a secret can only be read exactly once.
 
-Deployment results show that Secret Letter not only meets strict information security requirements but also maintains high performance, handles concurrent loads effectively, and protects against web crawlers through a Reveal Gate mechanism. The system is well-prepared to serve as a foundation for sensitive information exchange. The system's open-source code is publicly available on GitHub at \url{https://github.com/vmcchooky/secret-letter}, and the live application is currently deployed at \url{https://secret.quorxi.io.vn}.
+Deployment results show that Secret Letter not only meets strict information security requirements but also maintains high performance, handles concurrent loads effectively, and protects against web crawlers through a Reveal Gate mechanism. The system is well-prepared to serve as a foundation for sensitive information exchange. The system's open-source code is publicly available on GitHub at \url{https://github.com/vmcchooky/secret-letter}, and the live application is currently deployed at \url{https://secret.quorix.io.vn}.
 \end{english}
 
 
@@ -382,7 +382,7 @@ Trên phương diện kỹ thuật, kiến trúc kết hợp giữa Golang và c
 
 Về định hướng phát triển trong tương lai, dự án hướng tới việc mở rộng khả năng mã hóa cho các tệp tin đính kèm (File Attachment Encryption) dung lượng lớn thông qua các thuật toán mã hóa luồng (Stream Cipher) kết hợp Web Crypto API. Đồng thời, việc nghiên cứu áp dụng các cơ chế xác thực đa yếu tố bằng khóa phần cứng (FIDO2/WebAuthn) sẽ được tiến hành nhằm tăng cường lớp phòng thủ đối với các hành vi truy cập trái phép, củng cố vững chắc ranh giới bảo mật Zero-Knowledge mà không phá vỡ tính ẩn danh của người sử dụng.
 
-Toàn bộ mã nguồn, tài liệu API và các kịch bản triển khai (CI/CD) của dự án được đóng gói và phát hành mã nguồn mở tại \url{https://github.com/vmcchooky/secret-letter}. Hệ thống hiện đang được triển khai thử nghiệm để người dùng trải nghiệm thực tế tại \url{https://secret.quorxi.io.vn}.
+Toàn bộ mã nguồn, tài liệu API và các kịch bản triển khai (CI/CD) của dự án được đóng gói và phát hành mã nguồn mở tại \url{https://github.com/vmcchooky/secret-letter}. Hệ thống hiện đang được triển khai thử nghiệm để người dùng trải nghiệm thực tế tại \url{https://secret.quorix.io.vn}.
 
 \clearpage
 

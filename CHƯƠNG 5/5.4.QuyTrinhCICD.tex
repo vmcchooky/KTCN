@@ -51,11 +51,11 @@ Sơ đồ \ref{fig:cicd_pipeline} minh họa tổng quan kiến trúc của hai 
         \draw [arrow] (publish) -- (staging);
         
     \end{tikzpicture}
-    \caption{Sơ đồ tổng quan kiến trúc CI/CD bằng GitHub Actions}
+    \caption[Sơ đồ kiến trúc CI/CD bằng GitHub Actions]{Sơ đồ tổng quan kiến trúc CI/CD bằng GitHub Actions}
     \label{fig:cicd_pipeline}
 \end{figure}
 
-\subsection{Giai đoạn 1: Tích hợp liên tục và Kiểm duyệt (CI)}
+\subsection[Tích hợp liên tục và Kiểm duyệt (CI)]{Giai đoạn 1: Tích hợp liên tục và Kiểm duyệt (CI)}
 Luồng Tích hợp liên tục (CI) đóng vai trò là hàng rào bảo mật và kiểm thử cốt lõi. Cụ thể, thông qua tính năng \textbf{Branch Protection} của GitHub, nhánh \texttt{main} được khóa lại, yêu cầu bất kỳ đoạn mã mới nào (Pull Request) cũng phải vượt qua 100\% các bài test tự động trước khi được hợp nhất (Merge).
 
 Luồng này bao gồm các công đoạn:
@@ -67,7 +67,7 @@ Luồng này bao gồm các công đoạn:
 
 Sự kết hợp này đảm bảo tính năng mới không bao giờ làm hỏng kiến trúc Zero-Knowledge đã thiết kế ở Chương 3.
 
-\subsection{Giai đoạn 2: Phát hành và Triển khai liên tục (CD)}
+\subsection[Phát hành và Triển khai liên tục (CD)]{Giai đoạn 2: Phát hành và Triển khai liên tục (CD)}
 Luồng Triển khai (CD) chỉ được kích hoạt khi nhà phát triển đánh dấu một mốc phát hành (Tag \texttt{v*}). Lúc này, thay vì kiểm thử, GitHub Actions sẽ đóng vai trò như một cỗ máy biên dịch và phân phối:
 \begin{itemize}
     \item \textbf{Đóng gói Tài nguyên (Build Assets):} Backend Go được biên dịch chéo (Cross-compile) thành tệp nhị phân cho Linux, trong khi Frontend được Vite đóng gói thành tài nguyên tĩnh. Một bản kê khai \texttt{release-manifest.json} chứa mã băm SHA256 của từng tệp được tạo ra để đảm bảo không có sự can thiệp từ bên thứ ba trong quá trình tải xuống.

@@ -17,13 +17,13 @@ Nhằm xác minh độc lập, một đoạn mã kịch bản thử nghiệm API
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{img/benchmark_crypto.png}
-    \caption{Tốc độ mã hóa AES-GCM 256-bit tại Frontend theo kích thước Payload}
+    \caption[Tốc độ mã hóa AES-GCM tại Frontend]{Tốc độ mã hóa AES-GCM 256-bit tại Frontend theo kích thước Payload}
     \label{fig:benchmark_crypto}
 \end{figure}
 
 Số liệu (Hình \ref{fig:benchmark_crypto}) minh chứng mã hóa thuần túy 1MB dữ liệu mất khoảng 1.1ms, cho thấy mô hình Zero-Knowledge có độ trễ phía client rất thấp.
 
-\subsection{Khả năng chịu tải và độ trễ Backend (Load Testing)}
+\subsection[Khả năng chịu tải và độ trễ Backend]{Khả năng chịu tải và độ trễ Backend (Load Testing)}
 
 Để đánh giá chính xác năng lực đáp ứng của hệ thống Backend (viết bằng Golang), một kịch bản \textbf{Stress-Test} thực tế đã được triển khai trực tiếp bằng công cụ Benchmark của Go trên môi trường phát triển cục bộ. Máy chủ giả lập \textit{Mock Service} loại bỏ yếu tố I/O mạng nhằm đo lường khả năng xử lý nguyên bản của lõi ứng dụng (Application Core).
 
@@ -35,7 +35,7 @@ Biểu đồ phân phối độ trễ dưới đây minh chứng cho hiệu năn
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{Images/benchmark_latency.png}
-    \caption{Biểu đồ phân bố độ trễ (Latency Profile) từ bài Load Test thực tế}
+    \caption[Biểu đồ phân bố độ trễ (Latency Profile)]{Biểu đồ phân bố độ trễ (Latency Profile) từ bài Load Test thực tế}
     \label{fig:benchmark_latency}
 \end{figure}
 
@@ -47,25 +47,25 @@ Qua số liệu thực tế, hệ thống đã xử lý 35,729 yêu cầu trong 
     \item \textbf{Tỷ lệ thành công:} 100\% request được xử lý thành công (Status 201), Error Rate = 0.
 \end{itemize}
 
-\subsubsection{Tương quan giữa Mức độ đồng thời và Thông lượng}
+\subsubsection[Tương quan Mức độ đồng thời và Thông lượng]{Tương quan giữa Mức độ đồng thời và Thông lượng}
 Nhằm hiểu rõ hơn giới hạn chịu tải của máy chủ, một bài kiểm tra thứ hai được thiết lập với số lượng kết nối đồng thời (Concurrent Workers) thay đổi liên tục từ 10 lên đến 1,000. 
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{img/benchmark_throughput.png}
-    \caption{Mối tương quan giữa số luồng đồng thời và Thông lượng (RPS)}
+    \caption[Tương quan luồng đồng thời và Thông lượng]{Mối tương quan giữa số luồng đồng thời và Thông lượng (RPS)}
     \label{fig:benchmark_throughput}
 \end{figure}
 
 Dữ liệu cho thấy hệ thống hoạt động ổn định ở mức tải 10-50 kết nối đồng thời với lượng xử lý đạt gần 4,000 RPS. Khi số lượng kết nối tăng lên mức 500 và 1,000, thông lượng (RPS) có xu hướng giảm dần nhưng máy chủ không xảy ra tình trạng sập (Crash) hay từ chối phục vụ. 100\% các yêu cầu đều được trả về thành công, chứng tỏ hệ thống duy trì tính sẵn sàng (High Availability) ngay cả khi tài nguyên I/O hoặc CPU bị giới hạn.
 
-\subsubsection{Tương quan giữa Độ trễ và Kích thước dữ liệu (Tính chất O(1))}
+\subsubsection[Tương quan Độ trễ và Kích thước dữ liệu]{Tương quan giữa Độ trễ và Kích thước dữ liệu (Tính chất O(1))}
 Để chứng minh triết lý Zero-Knowledge giúp Backend siêu nhẹ, bài kiểm tra số 3 được thực hiện với các lá thư có kích thước từ 1KB đến 1MB (1,000KB).
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{img/benchmark_size.png}
-    \caption{Tương quan giữa Kích thước dữ liệu và Độ trễ Backend}
+    \caption[Tương quan Kích thước dữ liệu và Độ trễ]{Tương quan giữa Kích thước dữ liệu và Độ trễ Backend}
     \label{fig:benchmark_size}
 \end{figure}
 
@@ -77,7 +77,7 @@ Dù phải gánh vác mức tải khổng lồ (hơn 3,500 truy vấn mỗi giâ
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{img/benchmark_memory.png}
-    \caption{Biểu đồ giám sát RAM trong bài kiểm tra tải nặng (Stress-test)}
+    \caption[Biểu đồ giám sát RAM khi Stress-test]{Biểu đồ giám sát RAM trong bài kiểm tra tải nặng (Stress-test)}
     \label{fig:benchmark_memory}
 \end{figure}
 
