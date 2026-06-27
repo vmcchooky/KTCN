@@ -17,10 +17,10 @@ Quá trình xây dựng Frontend được hiện thực hóa thông qua bộ cô
 Thay vì phụ thuộc vào các thư viện mã hóa của bên thứ ba (như CryptoJS hay Forge), dự án khai thác trực tiếp bộ hàm \textbf{Web Crypto API} được tích hợp sẵn (Native) trên các trình duyệt hiện đại. Quyết định kỹ thuật này mang lại hai lợi thế lớn:
 \begin{enumerate}
     \item \textbf{Tối ưu hiệu năng phần cứng:} Cho phép tiến trình mã hóa AES-GCM (256-bit) tận dụng trực tiếp sức mạnh xử lý thông qua các lệnh mã hóa cấp thấp của hệ điều hành, giúp các thao tác giải mã diễn ra mượt mà ngay cả trên thiết bị di động có cấu hình hạn chế.
-    \item \textbf{Thu hẹp bề mặt tấn công:} Việc loại bỏ hoàn toàn các phụ thuộc ngoại vi (External Dependencies) giúp dự án tránh được các nguy cơ bị chèn mã độc thông qua lỗ hổng chuỗi cung ứng phần mềm (Supply Chain Attacks).
+    \item \textbf{Thu hẹp bề mặt tấn công:} Việc loại bỏ các thư viện mật mã của bên thứ ba giúp dự án thu hẹp đáng kể bề mặt tấn công chuỗi cung ứng (Supply Chain Attack) đối với luồng xử lý mã hóa cốt lõi.
 \end{enumerate}
 
-Trong quá trình vận hành, hàm \texttt{encryptSecret} chịu trách nhiệm tự động sinh ra một Nonce ngẫu nhiên dài 12-byte (bằng \texttt{crypto.getRandom\-Values}), sau đó kết hợp với khóa bí mật để biến đổi văn bản thuần (Plaintext) thành bản mã (Ciphertext) an toàn trước khi gửi đến máy chủ.
+Trong quá trình vận hành, hàm \texttt{encryptSecret} chịu trách nhiệm tự động sinh ra một Nonce ngẫu nhiên dài 12-byte (bằng \texttt{crypto.getRandomValues}), sau đó kết hợp với khóa bí mật để biến đổi văn bản thuần (Plaintext) thành bản mã (Ciphertext) an toàn trước khi gửi đến máy chủ.
 
 \subsection{Quản lý vòng đời luồng tương tác}
 
